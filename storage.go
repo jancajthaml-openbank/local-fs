@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package utils
+package storage
 
 import (
 	"bytes"
@@ -49,9 +49,22 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 	return name
 }
 
+type Storage struct {
+	Root string
+}
+
+func NewStorage(root string) Storage {
+	if root == "" || os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
+		panic("unable to assert root storage directory")
+	}
+	return Storage{
+		Root: root,
+	}
+}
+
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
-func ListDirectory(absPath string, ascending bool) (result []string, err error) {
+func (storage Storage) ListDirectory(absPath string, ascending bool) (result []string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if err == nil {
@@ -69,7 +82,7 @@ func ListDirectory(absPath string, ascending bool) (result []string, err error) 
 		de *syscall.Dirent
 	)
 
-	dh, err = os.Open(filepath.Clean(absPath))
+	dh, err = os.Open(filepath.Clean(storage.Root + "/" + absPath))
 	if err != nil {
 		return
 	}
@@ -135,7 +148,7 @@ func ListDirectory(absPath string, ascending bool) (result []string, err error) 
 }
 
 // CountFiles returns number of items in directory
-func CountFiles(absPath string) (result int, err error) {
+func (storage Storage) CountFiles(absPath string) (result int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if err == nil {
@@ -153,7 +166,7 @@ func CountFiles(absPath string) (result int, err error) {
 		de *syscall.Dirent
 	)
 
-	dh, err = os.Open(filepath.Clean(absPath))
+	dh, err = os.Open(filepath.Clean(storage.Root + "/" + absPath))
 	if err != nil {
 		return
 	}
@@ -194,10 +207,10 @@ func CountFiles(absPath string) (result int, err error) {
 }
 
 // Exists returns true if absolute path exists
-func Exists(absPath string) (bool, error) {
+func (storage Storage) Exists(absPath string) (bool, error) {
 	var (
 		trusted = new(syscall.Stat_t)
-		cleaned = filepath.Clean(absPath)
+		cleaned = filepath.Clean(storage.Root + "/" + absPath)
 		err     error
 	)
 	err = syscall.Stat(cleaned, trusted)
@@ -211,8 +224,8 @@ func Exists(absPath string) (bool, error) {
 }
 
 // TouchFile creates files given absolute path if file does not already exist
-func TouchFile(absPath string) error {
-	cleanedPath := filepath.Clean(absPath)
+func (storage Storage) TouchFile(absPath string) error {
+	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err
 	}
@@ -225,8 +238,8 @@ func TouchFile(absPath string) error {
 }
 
 // ReadFileFully reads whole file given absolute path
-func ReadFileFully(absPath string) ([]byte, error) {
-	f, err := os.OpenFile(filepath.Clean(absPath), os.O_RDONLY, os.ModePerm)
+func (storage Storage) ReadFileFully(absPath string) ([]byte, error) {
+	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+absPath), os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +258,8 @@ func ReadFileFully(absPath string) ([]byte, error) {
 
 // WriteFile writes data given absolute path to a file if that file does not
 // already exists
-func WriteFile(absPath string, data []byte) error {
-	cleanedPath := filepath.Clean(absPath)
+func (storage Storage) WriteFile(absPath string, data []byte) error {
+	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err
 	}
@@ -262,14 +275,14 @@ func WriteFile(absPath string, data []byte) error {
 }
 
 // DeleteFile removes file given absolute path if that file does exists
-func DeleteFile(absPath string) error {
-	return os.Remove(filepath.Clean(absPath))
+func (storage Storage) DeleteFile(absPath string) error {
+	return os.Remove(filepath.Clean(storage.Root + "/" + absPath))
 }
 
 // UpdateFile rewrite file with data given absolute path to a file if that file
 // exist
-func UpdateFile(absPath string, data []byte) (err error) {
-	cleanedPath := filepath.Clean(absPath)
+func (storage Storage) UpdateFile(absPath string, data []byte) (err error) {
+	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
 	var f *os.File
 	f, err = os.OpenFile(cleanedPath, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -282,8 +295,8 @@ func UpdateFile(absPath string, data []byte) (err error) {
 
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
-func AppendFile(absPath string, data []byte) (err error) {
-	cleanedPath := filepath.Clean(absPath)
+func (storage Storage) AppendFile(absPath string, data []byte) (err error) {
+	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
 	err = os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm)
 	if err != nil {
 		return err

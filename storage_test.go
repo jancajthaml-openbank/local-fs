@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,16 +23,16 @@ func TestExists(t *testing.T) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	var (
-		ok   bool
-		fail error
-	)
+	storage := NewStorage(tmpDir)
 
-	ok, fail = Exists(filename)
+	var ok bool
+	var fail error
+
+	ok, fail = storage.Exists(filepath.Base(filename))
 	assert.Nil(t, fail)
 	assert.True(t, ok)
 
-	ok, fail = Exists(filename + "xxx")
+	ok, fail = storage.Exists(filepath.Base(filename + "xxx"))
 	assert.Nil(t, fail)
 	assert.False(t, ok)
 }
@@ -40,6 +41,8 @@ func TestListDirectory(t *testing.T) {
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
+
+	storage := NewStorage(tmpDir)
 
 	NewSlice := func(start, end, step int) []int {
 		if step <= 0 || end < start {
@@ -63,7 +66,7 @@ func TestListDirectory(t *testing.T) {
 		file.Close()
 	}
 
-	list, err := ListDirectory(tmpdir, true)
+	list, err := storage.ListDirectory(filepath.Base(tmpdir), true)
 	require.Nil(t, err)
 
 	assert.NotNil(t, list)
@@ -77,8 +80,7 @@ func TestCountFiles(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
 
-	require.Nil(t, os.MkdirAll(tmpdir, os.ModePerm))
-	defer os.RemoveAll(tmpdir)
+	storage := NewStorage(tmpDir)
 
 	for i := 0; i < 60; i++ {
 		file, err := os.Create(tmpdir + "/" + testPad(i) + "F")
@@ -91,7 +93,7 @@ func TestCountFiles(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	numberOfFiles, err := CountFiles(tmpdir)
+	numberOfFiles, err := storage.CountFiles(filepath.Base(tmpdir))
 	require.Nil(t, err)
 	assert.Equal(t, 60, numberOfFiles)
 }
@@ -101,8 +103,7 @@ func BenchmarkCountFiles(b *testing.B) {
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
-	os.MkdirAll(tmpdir, os.ModePerm)
-	defer os.RemoveAll(tmpdir)
+	storage := NewStorage(tmpDir)
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -110,10 +111,12 @@ func BenchmarkCountFiles(b *testing.B) {
 		file.Close()
 	}
 
+	basePath := filepath.Base(tmpdir)
+
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		CountFiles(tmpdir)
+		storage.CountFiles(basePath)
 	}
 }
 
@@ -122,16 +125,20 @@ func BenchmarkListDirectory(b *testing.B) {
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
+	storage := NewStorage(tmpDir)
+
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
 		require.Nil(b, err)
 		file.Close()
 	}
 
+	basePath := filepath.Base(tmpdir)
+
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		ListDirectory(tmpdir, true)
+		storage.ListDirectory(basePath, true)
 	}
 }
 
@@ -141,10 +148,13 @@ func BenchmarkExists(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
+	storage := NewStorage(tmpDir)
+	basePath := filepath.Base(filename)
+
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		Exists(filename)
+		storage.Exists(basePath)
 	}
 }
 
@@ -154,12 +164,14 @@ func BenchmarkUpdateFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
+	storage := NewStorage(tmpDir)
+	basePath := filepath.Base(filename)
 	data := []byte("abcd")
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		UpdateFile(filename, data)
+		storage.UpdateFile(basePath, data)
 	}
 }
 
@@ -169,26 +181,31 @@ func BenchmarkAppendFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
+	storage := NewStorage(tmpDir)
+	basePath := filepath.Base(filename)
 	data := []byte("abcd")
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		AppendFile(filename, data)
+		storage.AppendFile(basePath, data)
 	}
 }
 
 func BenchmarkReadFileFully(b *testing.B) {
-	file, err := ioutil.TempFile(tmpDir, "appended.*")
+	file, err := ioutil.TempFile(tmpDir, "updated.*")
 	require.Nil(b, err)
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	require.Nil(b, UpdateFile(filename, []byte("abcd")))
+	storage := NewStorage(tmpDir)
+	basePath := filepath.Base(filename)
+
+	require.Nil(b, storage.UpdateFile(basePath, []byte("abcd")))
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		ReadFileFully(filename)
+		storage.ReadFileFully(basePath)
 	}
 }
