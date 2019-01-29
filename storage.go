@@ -16,6 +16,9 @@ package storage
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"os"
@@ -50,7 +53,8 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 }
 
 type Storage struct {
-	Root string
+	Root          string
+	EncryptionKey []byte
 }
 
 func NewStorage(root string) Storage {
@@ -60,6 +64,14 @@ func NewStorage(root string) Storage {
 	return Storage{
 		Root: root,
 	}
+}
+
+// SetEncryptionKey sets AES encryption key for data encryption and decryption
+func (storage *Storage) SetEncryptionKey(key []byte) {
+	if storage == nil {
+		return
+	}
+	storage.EncryptionKey = key
 }
 
 // ListDirectory returns sorted slice of item names in given absolute path
@@ -309,4 +321,45 @@ func (storage Storage) AppendFile(absPath string, data []byte) (err error) {
 	defer f.Close()
 	_, err = f.Write(data)
 	return
+}
+
+// Encrypt data with encryption key
+func (storage Storage) Encrypt(data []byte) ([]byte, error) {
+	if len(storage.encryptionKey) == 0 {
+		return nil, fmt.Errorf("no encryption key setup")
+	}
+	block, err := aes.NewCipher(storage.encryptionKey)
+	if err != nil {
+		return nil, err
+	}
+	ciphertext := make([]byte, aes.BlockSize+len(data))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
+	}
+	cfb := cipher.NewCFBEncrypter(block, iv)
+	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(data))
+	return ciphertext, nil
+}
+
+// Decrypt data with encryption key
+func (storage Storage) Decrypt(data []byte) ([]byte, error) {
+	if len(storage.encryptionKey) == 0 {
+		return nil, fmt.Errorf("no encryption key setup")
+	}
+	block, err := aes.NewCipher(storage.encryptionKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) < aes.BlockSize {
+		return nil, fmt.Errorf("invalid blocksize expected %d but actual is %d", aes.BlockSize, len(data))
+	}
+
+	plaintext := make([]byte, len(data))
+	copy(plaintext, data)
+	iv := plaintext[:aes.BlockSize]
+	plaintext = plaintext[aes.BlockSize:]
+	cfb := cipher.NewCFBDecrypter(block, iv)
+	cfb.XORKeyStream(plaintext, plaintext)
+	return plaintext, nil
 }
