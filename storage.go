@@ -54,7 +54,7 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 
 type Storage struct {
 	Root          string
-	EncryptionKey []byte
+	encryptionKey []byte
 }
 
 func NewStorage(root string) Storage {
@@ -71,7 +71,7 @@ func (storage *Storage) SetEncryptionKey(key []byte) {
 	if storage == nil {
 		return
 	}
-	storage.EncryptionKey = key
+	storage.encryptionKey = key
 }
 
 // ListDirectory returns sorted slice of item names in given absolute path
