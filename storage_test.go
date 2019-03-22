@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,13 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var tmpDir = os.TempDir()
-
 func testPad(version int) string {
 	return fmt.Sprintf("%010d", version)
 }
 
 func TestExists(t *testing.T) {
+	tmpDir := os.TempDir()
+
 	file, err := ioutil.TempFile(tmpDir, "existant.*.tmp")
 	require.Nil(t, err)
 	filename := file.Name()
@@ -37,7 +38,35 @@ func TestExists(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestReadFileFully(t *testing.T) {
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*.tmp")
+	require.Nil(t, err)
+	filename := file.Name()
+	basePath := filepath.Base(filename)
+	defer os.Remove(filename)
+
+	storage := NewStorage(tmpDir)
+
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	require.Nil(t, err)
+
+	var data []byte
+	var fail error
+
+	data, fail = storage.ReadFileFully(basePath)
+	assert.Nil(t, fail)
+	assert.Equal(t, len(bigBuff), len(data))
+	assert.Equal(t, bigBuff, data)
+}
+
 func TestListDirectory(t *testing.T) {
+	tmpDir := os.TempDir()
+
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
@@ -76,6 +105,8 @@ func TestListDirectory(t *testing.T) {
 }
 
 func TestCountFiles(t *testing.T) {
+	tmpDir := os.TempDir()
+
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
@@ -99,6 +130,8 @@ func TestCountFiles(t *testing.T) {
 }
 
 func BenchmarkCountFiles(b *testing.B) {
+	tmpDir := os.TempDir()
+
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
@@ -121,6 +154,8 @@ func BenchmarkCountFiles(b *testing.B) {
 }
 
 func BenchmarkListDirectory(b *testing.B) {
+	tmpDir := os.TempDir()
+
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
@@ -143,6 +178,8 @@ func BenchmarkListDirectory(b *testing.B) {
 }
 
 func BenchmarkExists(b *testing.B) {
+	tmpDir := os.TempDir()
+
 	file, err := ioutil.TempFile(tmpDir, "exists.*")
 	require.Nil(b, err)
 	filename := file.Name()
@@ -159,6 +196,8 @@ func BenchmarkExists(b *testing.B) {
 }
 
 func BenchmarkUpdateFile(b *testing.B) {
+	tmpDir := os.TempDir()
+
 	file, err := ioutil.TempFile(tmpDir, "updated.*")
 	require.Nil(b, err)
 	filename := file.Name()
@@ -166,16 +205,20 @@ func BenchmarkUpdateFile(b *testing.B) {
 
 	storage := NewStorage(tmpDir)
 	basePath := filepath.Base(filename)
-	data := []byte("abcd")
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
 
 	b.ResetTimer()
 	b.ReportAllocs()
+	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
-		storage.UpdateFile(basePath, data)
+		storage.UpdateFile(basePath, bigBuff)
 	}
 }
 
 func BenchmarkAppendFile(b *testing.B) {
+	tmpDir := os.TempDir()
+
 	file, err := ioutil.TempFile(tmpDir, "appended.*")
 	require.Nil(b, err)
 	filename := file.Name()
@@ -183,17 +226,21 @@ func BenchmarkAppendFile(b *testing.B) {
 
 	storage := NewStorage(tmpDir)
 	basePath := filepath.Base(filename)
-	data := []byte("abcd")
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
 
 	b.ResetTimer()
 	b.ReportAllocs()
+	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
-		storage.AppendFile(basePath, data)
+		storage.AppendFile(basePath, bigBuff)
 	}
 }
 
 func BenchmarkReadFileFully(b *testing.B) {
-	file, err := ioutil.TempFile(tmpDir, "updated.*")
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*")
 	require.Nil(b, err)
 	filename := file.Name()
 	defer os.Remove(filename)
@@ -201,10 +248,15 @@ func BenchmarkReadFileFully(b *testing.B) {
 	storage := NewStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
-	require.Nil(b, storage.UpdateFile(basePath, []byte("abcd")))
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	require.Nil(b, err)
 
 	b.ResetTimer()
 	b.ReportAllocs()
+	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
 		storage.ReadFileFully(basePath)
 	}
