@@ -29,12 +29,6 @@ import (
 	"unsafe"
 )
 
-var defaultBufferSize int
-
-func init() {
-	defaultBufferSize = 2 * os.Getpagesize()
-}
-
 func nameFromDirent(dirent *syscall.Dirent) []byte {
 	reg := int(uint64(dirent.Reclen) - uint64(unsafe.Offsetof(syscall.Dirent{}.Name)))
 
@@ -55,6 +49,7 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 type Storage struct {
 	Root          string
 	encryptionKey []byte
+	bufferSize    int
 }
 
 func NewStorage(root string) Storage {
@@ -62,7 +57,8 @@ func NewStorage(root string) Storage {
 		panic("unable to assert root storage directory")
 	}
 	return Storage{
-		Root: root,
+		Root:       root,
+		bufferSize: 2 * os.Getpagesize(),
 	}
 }
 
@@ -102,7 +98,7 @@ func (storage Storage) ListDirectory(absPath string, ascending bool) (result []s
 	fd := int(dh.Fd())
 	result = make([]string, 0)
 
-	scratchBuffer := make([]byte, defaultBufferSize)
+	scratchBuffer := make([]byte, storage.bufferSize)
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
@@ -185,7 +181,7 @@ func (storage Storage) CountFiles(absPath string) (result int, err error) {
 
 	fd := int(dh.Fd())
 
-	scratchBuffer := make([]byte, defaultBufferSize)
+	scratchBuffer := make([]byte, storage.bufferSize)
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
@@ -247,6 +243,19 @@ func (storage Storage) TouchFile(absPath string) error {
 	}
 	defer f.Close()
 	return nil
+}
+
+// GetFileReader creates file io.Reader
+func (storage Storage) GetFileReader(absPath string) (*fileReader, error) {
+	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+absPath), os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	reader := new(fileReader)
+	reader.source = f
+
+	return reader, nil
 }
 
 // ReadFileFully reads whole file given absolute path
