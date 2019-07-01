@@ -19,7 +19,7 @@ func testPad(version int) string {
 func TestExists(t *testing.T) {
 	tmpDir := os.TempDir()
 
-	file, err := ioutil.TempFile(tmpDir, "existant.*.tmp")
+	file, err := ioutil.TempFile(tmpDir, "existent.*.tmp")
 	require.Nil(t, err)
 	filename := file.Name()
 	defer os.Remove(filename)
@@ -138,7 +138,7 @@ func BenchmarkCountFiles(b *testing.B) {
 
 	storage := NewStorage(tmpDir)
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
 		require.Nil(b, err)
 		file.Close()

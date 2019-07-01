@@ -1,0 +1,9 @@
+.git
+vendor
+dev
+reports
+.gitignore
+.editorconfig
+.env
+.depignore
+docker-compose.yml

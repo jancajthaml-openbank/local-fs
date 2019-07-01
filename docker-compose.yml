@@ -1,0 +1,53 @@
+version: '2'
+
+# ---------------------------------------------------------------------------- #
+
+services:
+
+  # -------------------------------------------------------------------------- #
+
+  go:
+    image: jancajthaml/go
+    volumes:
+      - .:/project
+      - .:/go/src/github.com/jancajthaml-openbank/local-fs
+    working_dir: /go/src/github.com/jancajthaml-openbank/local-fs
+    environment:
+      - GOOS
+      - GOARCH
+      - GOPATH=/go
+      - COMPOSE_PROJECT_NAME
+    entrypoint: ["go"]
+    privileged: true
+
+  # -------------------------------------------------------------------------- #
+
+  sync:
+    extends: go
+    entrypoint: ["/project/dev/lifecycle/sync"]
+
+  # -------------------------------------------------------------------------- #
+
+  update:
+    extends: go
+    entrypoint: ["/project/dev/lifecycle/update"]
+
+  # -------------------------------------------------------------------------- #
+
+  lint:
+    extends: go
+    entrypoint: ["/project/dev/lifecycle/lint"]
+
+  # -------------------------------------------------------------------------- #
+
+  sec:
+    extends: go
+    entrypoint: ["/project/dev/lifecycle/sec"]
+
+  # -------------------------------------------------------------------------- #
+
+  test:
+    extends: go
+    entrypoint: ["/project/dev/lifecycle/test"]
+
+# ---------------------------------------------------------------------------- #
