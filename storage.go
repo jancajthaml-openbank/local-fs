@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"syscall"
 	"unsafe"
@@ -46,19 +47,21 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 	return name
 }
 
+// Storage is a fascade to access storage
 type Storage struct {
 	Root          string
 	encryptionKey []byte
 	bufferSize    int
 }
 
+// NewStorage returns new storage over given root
 func NewStorage(root string) Storage {
 	if root == "" || os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
 		panic("unable to assert root storage directory")
 	}
 	return Storage{
 		Root:       root,
-		bufferSize: 2 * os.Getpagesize(),
+		bufferSize: 8192,
 	}
 }
 
@@ -72,25 +75,14 @@ func (storage *Storage) SetEncryptionKey(key []byte) {
 
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
-func (storage Storage) ListDirectory(absPath string, ascending bool) (result []string, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if err == nil {
-				err = fmt.Errorf("ListDirectory paniced: %+v", r)
-			}
-		}
-		if err != nil {
-			result = nil
-		}
-	}()
-
+func (storage Storage) ListDirectory(path string, ascending bool) (result []string, err error) {
 	var (
 		n  int
 		dh *os.File
 		de *syscall.Dirent
 	)
 
-	dh, err = os.Open(filepath.Clean(storage.Root + "/" + absPath))
+	dh, err = os.Open(filepath.Clean(storage.Root + "/" + path))
 	if err != nil {
 		return
 	}
@@ -102,6 +94,7 @@ func (storage Storage) ListDirectory(absPath string, ascending bool) (result []s
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
+		runtime.KeepAlive(dh)
 		if err != nil {
 			if r := dh.Close(); r != nil {
 				err = r
@@ -156,25 +149,14 @@ func (storage Storage) ListDirectory(absPath string, ascending bool) (result []s
 }
 
 // CountFiles returns number of items in directory
-func (storage Storage) CountFiles(absPath string) (result int, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if err == nil {
-				err = fmt.Errorf("CountFiles paniced: %+v", r)
-			}
-		}
-		if err != nil {
-			result = -1
-		}
-	}()
-
+func (storage Storage) CountFiles(path string) (result int, err error) {
 	var (
 		n  int
 		dh *os.File
 		de *syscall.Dirent
 	)
 
-	dh, err = os.Open(filepath.Clean(storage.Root + "/" + absPath))
+	dh, err = os.Open(filepath.Clean(storage.Root + "/" + path))
 	if err != nil {
 		return
 	}
@@ -185,6 +167,7 @@ func (storage Storage) CountFiles(absPath string) (result int, err error) {
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
+		runtime.KeepAlive(dh)
 		if err != nil {
 			if r := dh.Close(); r != nil {
 				err = r
@@ -198,11 +181,9 @@ func (storage Storage) CountFiles(absPath string) (result int, err error) {
 		for len(buf) > 0 {
 			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0]))
 			buf = buf[de.Reclen:]
-
 			if de.Ino == 0 || de.Type != syscall.DT_REG {
 				continue
 			}
-
 			result++
 		}
 	}
@@ -215,10 +196,10 @@ func (storage Storage) CountFiles(absPath string) (result int, err error) {
 }
 
 // Exists returns true if absolute path exists
-func (storage Storage) Exists(absPath string) (bool, error) {
+func (storage Storage) Exists(path string) (bool, error) {
 	var (
 		trusted = new(syscall.Stat_t)
-		cleaned = filepath.Clean(storage.Root + "/" + absPath)
+		cleaned = filepath.Clean(storage.Root + "/" + path)
 		err     error
 	)
 	err = syscall.Stat(cleaned, trusted)
@@ -232,8 +213,8 @@ func (storage Storage) Exists(absPath string) (bool, error) {
 }
 
 // TouchFile creates files given absolute path if file does not already exist
-func (storage Storage) TouchFile(absPath string) error {
-	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
+func (storage Storage) TouchFile(path string) error {
+	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err
 	}
@@ -246,8 +227,8 @@ func (storage Storage) TouchFile(absPath string) error {
 }
 
 // GetFileReader creates file io.Reader
-func (storage Storage) GetFileReader(absPath string) (*fileReader, error) {
-	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+absPath), os.O_RDONLY, os.ModePerm)
+func (storage Storage) GetFileReader(path string) (*fileReader, error) {
+	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -259,8 +240,8 @@ func (storage Storage) GetFileReader(absPath string) (*fileReader, error) {
 }
 
 // ReadFileFully reads whole file given absolute path
-func (storage Storage) ReadFileFully(absPath string) ([]byte, error) {
-	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+absPath), os.O_RDONLY, os.ModePerm)
+func (storage Storage) ReadFileFully(path string) ([]byte, error) {
+	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +260,8 @@ func (storage Storage) ReadFileFully(absPath string) ([]byte, error) {
 
 // WriteFile writes data given absolute path to a file if that file does not
 // already exists
-func (storage Storage) WriteFile(absPath string, data []byte) error {
-	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
+func (storage Storage) WriteFile(path string, data []byte) error {
+	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err
 	}
@@ -296,14 +277,14 @@ func (storage Storage) WriteFile(absPath string, data []byte) error {
 }
 
 // DeleteFile removes file given absolute path if that file does exists
-func (storage Storage) DeleteFile(absPath string) error {
-	return os.Remove(filepath.Clean(storage.Root + "/" + absPath))
+func (storage Storage) DeleteFile(path string) error {
+	return os.Remove(filepath.Clean(storage.Root + "/" + path))
 }
 
 // UpdateFile rewrite file with data given absolute path to a file if that file
 // exist
-func (storage Storage) UpdateFile(absPath string, data []byte) (err error) {
-	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
+func (storage Storage) UpdateFile(path string, data []byte) (err error) {
+	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	var f *os.File
 	f, err = os.OpenFile(cleanedPath, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -316,8 +297,8 @@ func (storage Storage) UpdateFile(absPath string, data []byte) (err error) {
 
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
-func (storage Storage) AppendFile(absPath string, data []byte) (err error) {
-	cleanedPath := filepath.Clean(storage.Root + "/" + absPath)
+func (storage Storage) AppendFile(path string, data []byte) (err error) {
+	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	err = os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm)
 	if err != nil {
 		return err
