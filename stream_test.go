@@ -21,7 +21,7 @@ func TestFileReader(t *testing.T) {
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -52,7 +52,7 @@ func BenchmarkFileReader(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
 	bigBuff := make([]byte, 75000)

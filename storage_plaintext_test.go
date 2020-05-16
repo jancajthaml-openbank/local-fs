@@ -24,7 +24,7 @@ func TestExists(t *testing.T) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	var ok bool
 	var fail error
@@ -47,7 +47,7 @@ func TestReadFileFully(t *testing.T) {
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -71,7 +71,7 @@ func TestListDirectory(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	NewSlice := func(start, end, step int) []int {
 		if step <= 0 || end < start {
@@ -111,7 +111,7 @@ func TestCountFiles(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 60; i++ {
 		file, err := os.Create(tmpdir + "/" + testPad(i) + "F")
@@ -136,7 +136,7 @@ func BenchmarkCountFiles(b *testing.B) {
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -160,7 +160,7 @@ func BenchmarkListDirectory(b *testing.B) {
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -185,7 +185,7 @@ func BenchmarkExists(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
 	b.ResetTimer()
@@ -203,7 +203,7 @@ func BenchmarkUpdateFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -224,7 +224,7 @@ func BenchmarkAppendFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -245,7 +245,7 @@ func BenchmarkReadFileFully(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
 	bigBuff := make([]byte, 75000)
