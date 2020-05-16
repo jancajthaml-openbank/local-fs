@@ -20,8 +20,11 @@ storage := localfs.NewStorage("/tmp")
 // list nodes at /tmp/foo in ascending order
 asc, err := storage.ListDirectory("foo", true)
 
-// list nodes at /tmp/foo in descengin order
+// list nodes at /tmp/foo in descending order
 desc, err := storage.ListDirectory("foo", false)
+
+// count files at /tmp/foo
+count, err := storage.CountFiles("foo")
 
 // check if /tmp/foo exists
 ok, err := storage.Exists("foo")
