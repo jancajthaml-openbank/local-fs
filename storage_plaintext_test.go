@@ -48,7 +48,7 @@ func TestReadFileFully(t *testing.T) {
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
 
-	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	err = storage.WriteFile(basePath, bigBuff)
 	require.Nil(t, err)
 
 	var data []byte
@@ -201,7 +201,7 @@ func BenchmarkWriteFile(b *testing.B) {
 
 	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
@@ -222,7 +222,7 @@ func BenchmarkAppendFile(b *testing.B) {
 
 	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
@@ -244,7 +244,7 @@ func BenchmarkReadFileFully(b *testing.B) {
 	storage := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)

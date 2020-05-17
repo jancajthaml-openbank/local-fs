@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // EncryptedStorage is a fascade to access encrypted storage
@@ -36,6 +37,9 @@ func NewEncryptedStorage(root string, key []byte) EncryptedStorage {
 	if root == "" || os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
 		panic("unable to assert root storage directory")
 	}
+	if len(key) == 0 {
+		panic("no encryption key setup")
+	}
 	return EncryptedStorage{
 		Root:          root,
 		bufferSize:    8192,
@@ -45,9 +49,6 @@ func NewEncryptedStorage(root string, key []byte) EncryptedStorage {
 
 // Encrypt data with encryption key
 func (storage EncryptedStorage) Encrypt(data []byte) ([]byte, error) {
-	if len(storage.encryptionKey) == 0 {
-		return nil, fmt.Errorf("no encryption key setup")
-	}
 	block, err := aes.NewCipher(storage.encryptionKey)
 	if err != nil {
 		return nil, err
@@ -64,9 +65,6 @@ func (storage EncryptedStorage) Encrypt(data []byte) ([]byte, error) {
 
 // Decrypt data with encryption key
 func (storage EncryptedStorage) Decrypt(data []byte) ([]byte, error) {
-	if len(storage.encryptionKey) == 0 {
-		return nil, fmt.Errorf("no encryption key setup")
-	}
 	block, err := aes.NewCipher(storage.encryptionKey)
 	if err != nil {
 		return nil, err
@@ -74,7 +72,6 @@ func (storage EncryptedStorage) Decrypt(data []byte) ([]byte, error) {
 	if len(data) < aes.BlockSize {
 		return nil, fmt.Errorf("invalid blocksize expected %d but actual is %d", aes.BlockSize, len(data))
 	}
-
 	plaintext := make([]byte, len(data))
 	copy(plaintext, data)
 	iv := plaintext[:aes.BlockSize]
@@ -112,17 +109,22 @@ func (storage EncryptedStorage) DeleteFile(path string) error {
 
 // ReadFileFully reads whole file given path
 func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
-	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
+	filename := filepath.Clean(storage.Root + "/" + path)
+	fd, err := syscall.Open(filename, syscall.O_RDONLY, 0600)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
+	defer syscall.Close(fd)
+	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
 		return nil, err
 	}
-	buf := make([]byte, fi.Size())
-	_, err = f.Read(buf)
+	defer syscall.Flock(fd, syscall.LOCK_UN)
+	var fs syscall.Stat_t
+	if err = syscall.Fstat(fd, &fs); err != nil {
+		return nil, err
+	}
+	buf := make([]byte, fs.Size)
+	_, err = syscall.Read(fd, buf)
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
@@ -133,41 +135,49 @@ func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 // WriteFileExclusive writes data given path to a file if that file does not
 // already exists
 func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) error {
+	filename := filepath.Clean(storage.Root + "/" + path)
+	if err := os.MkdirAll(filename, 0600); err != nil {
+		return err
+	}
 	// FIXME inline
 	out, err := storage.Encrypt(data)
 	if err != nil {
 		return err
 	}
-	cleanedPath := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
-		return err
-	}
-	f, err := os.OpenFile(cleanedPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, os.ModePerm)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_EXCL, 0600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	if _, err := f.Write(out); err != nil {
+	defer syscall.Close(fd)
+	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
+		return err
+	}
+	defer syscall.Flock(fd, syscall.LOCK_UN)
+	if _, err := syscall.Write(fd, out); err != nil {
 		return err
 	}
 	return nil
 }
 
-// WriteFile rewrite file with data given absolute path to a file if that file
-// exist
+// WriteFile writes data given absolute path to a file, creates it if it does
+// not exist
 func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
+	filename := filepath.Clean(storage.Root + "/" + path)
 	// FIXME inline
 	out, err := storage.Encrypt(data)
 	if err != nil {
 		return err
 	}
-	cleanedPath := filepath.Clean(storage.Root + "/" + path)
-	f, err := os.OpenFile(cleanedPath, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	if _, err := f.Write(out); err != nil {
+	defer syscall.Close(fd)
+	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
+		return err
+	}
+	defer syscall.Flock(fd, syscall.LOCK_UN)
+	if _, err := syscall.Write(fd, out); err != nil {
 		return err
 	}
 	return nil
@@ -176,25 +186,26 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
 func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
-	// FIXME possible RACE condition here (test with -race)
-	cleanedPath := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
-		return err
-	}
-	f, err := os.OpenFile(cleanedPath, os.O_CREATE, os.ModePerm)
+	filename := filepath.Clean(storage.Root + "/" + path)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
+	defer syscall.Close(fd)
+	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
 		return err
 	}
-	buf := make([]byte, fi.Size())
-	_, err = f.Read(buf)
+	defer syscall.Flock(fd, syscall.LOCK_UN)
+	var fs syscall.Stat_t
+	if err = syscall.Fstat(fd, &fs); err != nil {
+		return err
+	}
+	buf := make([]byte, fs.Size)
+	_, err = syscall.Read(fd, buf)
 	if err != nil && err != io.EOF {
 		return err
 	}
+	// FIXME inline
 	head, err := storage.Decrypt(buf)
 	if err != nil {
 		return err
@@ -202,11 +213,12 @@ func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
 	var tail = make([]byte, len(head)+1)
 	tail = append(tail, head...)
 	tail = append(tail, data...)
+	// FIXME inline
 	out, err := storage.Encrypt(tail)
 	if err != nil {
 		return err
 	}
-	if _, err := f.Write(out); err != nil {
+	if _, err := syscall.Write(fd, out); err != nil {
 		return err
 	}
 	return nil

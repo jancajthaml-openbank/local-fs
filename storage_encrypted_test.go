@@ -209,7 +209,7 @@ func BenchmarkWriteFileEncrypted(b *testing.B) {
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
@@ -230,7 +230,7 @@ func BenchmarkAppendFileEncrypted(b *testing.B) {
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
@@ -252,7 +252,7 @@ func BenchmarkReadFileFullyEncrypted(b *testing.B) {
 	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)

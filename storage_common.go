@@ -27,18 +27,15 @@ import (
 
 func nameFromDirent(dirent *syscall.Dirent) []byte {
 	reg := int(uint64(dirent.Reclen) - uint64(unsafe.Offsetof(syscall.Dirent{}.Name)))
-
 	var name []byte
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&name))
 	header.Cap = reg
 	header.Len = reg
 	header.Data = uintptr(unsafe.Pointer(&dirent.Name[0]))
-
 	if index := bytes.IndexByte(name, 0); index >= 0 {
 		header.Cap = index
 		header.Len = index
 	}
-
 	return name
 }
 
@@ -49,11 +46,13 @@ func listDirectory(abspath string, bufferSize int, ascending bool) (result []str
 		de *syscall.Dirent
 	)
 
+	// FIXME direct FD
 	dh, err = os.Open(filepath.Clean(abspath))
 	if err != nil {
 		return
 	}
 
+	// FIXME direct FD
 	fd := int(dh.Fd())
 	result = make([]string, 0)
 
@@ -134,11 +133,13 @@ func countFiles(absPath string, bufferSize int) (result int, err error) {
 		de *syscall.Dirent
 	)
 
+	// FIXME direct FD
 	dh, err = os.Open(filepath.Clean(absPath))
 	if err != nil {
 		return
 	}
 
+	// FIXME direct FD
 	fd := int(dh.Fd())
 
 	scratchBuffer := make([]byte, bufferSize)
