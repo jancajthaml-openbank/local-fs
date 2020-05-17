@@ -16,7 +16,7 @@ package storage
 
 // Storage hold contract for storage API
 type Storage interface {
-	ListDirectory(string) ([]string, error)
+	ListDirectory(string, bool) ([]string, error)
 	CountFiles(string) (int, error)
 	Exists(string) (bool, error)
 	TouchFile(string) error
