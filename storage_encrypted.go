@@ -24,35 +24,6 @@ import (
 	"path/filepath"
 )
 
-type encryptedFileReader struct {
-	source *os.File
-	block  cipher.Block
-}
-
-func (reader *encryptedFileReader) Read(p []byte) (int, error) {
-	if reader == nil {
-		return 0, fmt.Errorf("cannot read into nil pointer")
-	}
-	if reader.source == nil {
-		return 0, fmt.Errorf("no source to read from")
-	}
-	var data = make([]byte, len(p)+aes.BlockSize)
-	n, err := reader.source.Read(data)
-	if n == 0 {
-		return 0, io.EOF
-	}
-	iv := data[:aes.BlockSize]
-	data = data[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(reader.block, iv)
-	cfb.XORKeyStream(data, data)
-	copy(p, data)
-	if err != nil {
-		reader.source.Close()
-		return n, err
-	}
-	return n, nil
-}
-
 // EncryptedStorage is a fascade to access encrypted storage
 type EncryptedStorage struct {
 	Root          string
@@ -139,27 +110,6 @@ func (storage EncryptedStorage) DeleteFile(path string) error {
 	return os.Remove(filepath.Clean(storage.Root + "/" + path))
 }
 
-// GetFileReader creates file io.Reader
-func (storage EncryptedStorage) GetFileReader(path string) (*encryptedFileReader, error) {
-	if len(storage.encryptionKey) == 0 {
-		return nil, fmt.Errorf("no encryption key setup")
-	}
-	block, err := aes.NewCipher(storage.encryptionKey)
-	if err != nil {
-		return nil, err
-	}
-	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	reader := new(encryptedFileReader)
-	reader.block = block
-	reader.source = f
-
-	return reader, nil
-}
-
 // ReadFileFully reads whole file given path
 func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
@@ -226,6 +176,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
 func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
+	// FIXME possible RACE condition here (test with -race)
 	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err

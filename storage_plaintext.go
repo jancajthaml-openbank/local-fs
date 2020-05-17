@@ -15,41 +15,18 @@
 package storage
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 )
 
-type plaintextFileReader struct {
-	source *os.File
-}
-
-func (reader *plaintextFileReader) Read(p []byte) (int, error) {
-	if reader == nil {
-		return 0, fmt.Errorf("cannot read into nil pointer")
-	}
-	if reader.source == nil {
-		return 0, fmt.Errorf("no source to read from")
-	}
-	n, err := reader.source.Read(p)
-	if n == 0 {
-		return 0, io.EOF
-	}
-	if err != nil {
-		reader.source.Close()
-		return n, err
-	}
-	return n, nil
-}
-
-// Storage is a fascade to access plaintext storage
+// PlaintextStorage is a fascade to access plaintext storage
 type PlaintextStorage struct {
 	Root       string
 	bufferSize int
 }
 
-// NewStorage returns new storage over given root
+// NewPlaintextStorage returns new storage over given root
 func NewPlaintextStorage(root string) PlaintextStorage {
 	if root == "" || os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
 		panic("unable to assert root storage directory")
@@ -84,19 +61,6 @@ func (storage PlaintextStorage) TouchFile(path string) error {
 // DeleteFile removes file given absolute path if that file does exists
 func (storage PlaintextStorage) DeleteFile(path string) error {
 	return os.Remove(filepath.Clean(storage.Root + "/" + path))
-}
-
-// GetFileReader creates file io.Reader
-func (storage PlaintextStorage) GetFileReader(path string) (*plaintextFileReader, error) {
-	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	reader := new(plaintextFileReader)
-	reader.source = f
-
-	return reader, nil
 }
 
 // ReadFileFully reads whole file given path

@@ -82,3 +82,8 @@ err := storage.WriteFile("foo", out)
 in, err := storage.ReadFileFully("/tmp/data/foo")
 data, err := storage.Decrypt(in)
 ```
+
+
+
+# fixme implement mutual exculsive file locking for race operations
+- https://github.com/juju/fslock/blob/master/fslock_nix.go
