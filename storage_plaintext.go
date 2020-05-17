@@ -81,8 +81,7 @@ func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 		return nil, err
 	}
 	buf := make([]byte, fs.Size)
-	_, err = syscall.Read(fd, buf)
-	if err != nil && err != io.EOF {
+	if _, err = syscall.Read(fd, buf); err != nil && err != io.EOF {
 		return nil, err
 	}
 	return buf, nil
