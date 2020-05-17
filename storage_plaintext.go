@@ -67,7 +67,7 @@ func (storage PlaintextStorage) DeleteFile(path string) error {
 // ReadFileFully reads whole file given path
 func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	fd, err := syscall.Open(filename, syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
+	fd, err := syscall.Open(filepath.Dir(filename), syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 // already exists
 func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filename), 0600); err != nil {
 		return err
 	}
 	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_EXCL|syscall.O_NONBLOCK, 0600)
@@ -113,7 +113,7 @@ func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) err
 // not exist
 func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filename), 0600); err != nil {
 		return err
 	}
 	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC|syscall.O_NONBLOCK, 0600)
@@ -135,7 +135,7 @@ func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
 // not exist
 func (storage PlaintextStorage) AppendFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll((filepath.Base(filename), 0600); err != nil {
 		return err
 	}
 	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_APPEND|syscall.O_NONBLOCK, 0600)

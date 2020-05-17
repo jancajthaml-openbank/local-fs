@@ -136,7 +136,7 @@ func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 // already exists
 func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filename), 0600); err != nil {
 		return err
 	}
 	// FIXME inline
@@ -163,7 +163,7 @@ func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) err
 // not exist
 func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filename), 0600); err != nil {
 		return err
 	}
 	// FIXME inline
@@ -190,7 +190,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 // not exist
 func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filename, 0600); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filename), 0600); err != nil {
 		return err
 	}
 	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC|syscall.O_NONBLOCK, 0600)
