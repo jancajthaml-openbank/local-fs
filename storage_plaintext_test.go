@@ -3,6 +3,7 @@ package storage
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,10 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func testPad(version int) string {
-	return fmt.Sprintf("%010d", version)
-}
 
 func TestExists(t *testing.T) {
 	tmpDir := os.TempDir()
@@ -91,7 +88,7 @@ func TestListDirectory(t *testing.T) {
 	items := NewSlice(0, 10, 1)
 
 	for _, i := range items {
-		var file, _ = os.Create(tmpdir + "/" + testPad(i))
+		var file, _ = os.Create(fmt.Sprintf("%s/%010d", tmpdir, i))
 		file.Close()
 	}
 
@@ -100,8 +97,8 @@ func TestListDirectory(t *testing.T) {
 
 	assert.NotNil(t, list)
 	assert.Equal(t, len(items), len(list))
-	assert.Equal(t, testPad(items[0]), list[0])
-	assert.Equal(t, testPad(items[len(items)-1]), list[len(list)-1])
+	assert.Equal(t, fmt.Sprintf("%010d", items[0]), list[0])
+	assert.Equal(t, fmt.Sprintf("%010d", items[len(items)-1]), list[len(list)-1])
 }
 
 func TestCountFiles(t *testing.T) {
@@ -114,19 +111,82 @@ func TestCountFiles(t *testing.T) {
 	storage := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 60; i++ {
-		file, err := os.Create(tmpdir + "/" + testPad(i) + "F")
+		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
 		require.Nil(t, err)
 		file.Close()
 	}
 
 	for i := 0; i < 40; i++ {
-		err := os.MkdirAll(tmpdir+"/"+testPad(i)+"D", os.ModePerm)
+		err := os.MkdirAll(fmt.Sprintf("%s/%010dD", tmpdir, i), os.ModePerm)
 		require.Nil(t, err)
 	}
 
 	numberOfFiles, err := storage.CountFiles(filepath.Base(tmpdir))
 	require.Nil(t, err)
 	assert.Equal(t, 60, numberOfFiles)
+}
+
+func TestFileReader(t *testing.T) {
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*.tmp")
+	require.Nil(t, err)
+	filename := file.Name()
+	basePath := filepath.Base(filename)
+	defer os.Remove(filename)
+
+	storage := NewPlaintextStorage(tmpDir)
+
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = storage.WriteFile(basePath, bigBuff)
+	require.Nil(t, err)
+
+	var data []byte
+	var fail error
+
+	reader, fail := storage.GetFileReader(basePath)
+	assert.Nil(t, fail)
+	assert.NotNil(t, reader)
+
+	data = make([]byte, len(bigBuff))
+	_, fail = io.ReadFull(reader, data)
+	assert.Equal(t, nil, fail)
+	assert.Equal(t, len(bigBuff), len(data))
+	assert.Equal(t, bigBuff, data)
+}
+
+func BenchmarkFileReader(b *testing.B) {
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*")
+	require.Nil(b, err)
+	filename := file.Name()
+	defer os.Remove(filename)
+
+	storage := NewPlaintextStorage(tmpDir)
+	basePath := filepath.Base(filename)
+
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	require.Nil(b, err)
+
+	data := make([]byte, len(bigBuff))
+
+	reader, fail := storage.GetFileReader(basePath)
+	assert.Nil(b, fail)
+	assert.NotNil(b, reader)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bigBuff)))
+	for n := 0; n < b.N; n++ {
+		reader, _ := storage.GetFileReader(basePath)
+		io.ReadFull(reader, data)
+	}
 }
 
 func BenchmarkCountFiles(b *testing.B) {
@@ -195,7 +255,7 @@ func BenchmarkExists(b *testing.B) {
 	}
 }
 
-func BenchmarkUpdateFile(b *testing.B) {
+func BenchmarkWriteFile(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "updated.*")
@@ -212,7 +272,7 @@ func BenchmarkUpdateFile(b *testing.B) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
-		storage.UpdateFile(basePath, bigBuff)
+		storage.WriteFile(basePath, bigBuff)
 	}
 }
 

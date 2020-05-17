@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -18,10 +19,6 @@ func getKey() []byte {
 	dst := make([]byte, hex.DecodedLen(len(src)))
 	n, _ := hex.Decode(dst, src)
 	return dst[:n]
-}
-
-func testPadEncrypted(version int) string {
-	return fmt.Sprintf("%010d", version)
 }
 
 func TestExistsEncrypted(t *testing.T) {
@@ -60,7 +57,7 @@ func TestReadFileFullyEncrypted(t *testing.T) {
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
 
-	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	err = storage.WriteFile(basePath, bigBuff)
 	require.Nil(t, err)
 
 	var data []byte
@@ -99,7 +96,7 @@ func TestListDirectoryEncrypted(t *testing.T) {
 	items := NewSlice(0, 10, 1)
 
 	for _, i := range items {
-		var file, _ = os.Create(tmpdir + "/" + testPadEncrypted(i))
+		var file, _ = os.Create(fmt.Sprintf("%s/%010d", tmpdir, i))
 		file.Close()
 	}
 
@@ -108,8 +105,8 @@ func TestListDirectoryEncrypted(t *testing.T) {
 
 	assert.NotNil(t, list)
 	assert.Equal(t, len(items), len(list))
-	assert.Equal(t, testPadEncrypted(items[0]), list[0])
-	assert.Equal(t, testPadEncrypted(items[len(items)-1]), list[len(list)-1])
+	assert.Equal(t, fmt.Sprintf("%010d", items[0]), list[0])
+	assert.Equal(t, fmt.Sprintf("%010d", items[len(items)-1]), list[len(list)-1])
 }
 
 func TestCountFilesEncrypted(t *testing.T) {
@@ -122,19 +119,84 @@ func TestCountFilesEncrypted(t *testing.T) {
 	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 60; i++ {
-		file, err := os.Create(tmpdir + "/" + testPadEncrypted(i) + "F")
+		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
 		require.Nil(t, err)
 		file.Close()
 	}
 
 	for i := 0; i < 40; i++ {
-		err := os.MkdirAll(tmpdir+"/"+testPadEncrypted(i)+"D", os.ModePerm)
+		err := os.MkdirAll(fmt.Sprintf("%s/%010dD", tmpdir, i), os.ModePerm)
 		require.Nil(t, err)
 	}
 
 	numberOfFiles, err := storage.CountFiles(filepath.Base(tmpdir))
 	require.Nil(t, err)
 	assert.Equal(t, 60, numberOfFiles)
+}
+
+func TestFileReaderEncrypted(t *testing.T) {
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*.tmp")
+	require.Nil(t, err)
+	filename := file.Name()
+	basePath := filepath.Base(filename)
+	defer os.Remove(filename)
+
+	storage := NewEncryptedStorage(tmpDir, getKey())
+
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = storage.WriteFile(basePath, bigBuff)
+	require.Nil(t, err)
+
+	var data []byte
+	var fail error
+
+	reader, fail := storage.GetFileReader(basePath)
+	assert.Nil(t, fail)
+	assert.NotNil(t, reader)
+
+	// FIXME try if unknown size (chunked)
+	// I think that wouldn't work
+	data = make([]byte, len(bigBuff))
+	_, fail = io.ReadFull(reader, data)
+	assert.Equal(t, nil, fail)
+	assert.Equal(t, len(bigBuff), len(data))
+	assert.Equal(t, bigBuff, data)
+}
+
+func BenchmarkFileReaderEncrypted(b *testing.B) {
+	tmpDir := os.TempDir()
+
+	file, err := ioutil.TempFile(tmpDir, "readable.*")
+	require.Nil(b, err)
+	filename := file.Name()
+	defer os.Remove(filename)
+
+	storage := NewEncryptedStorage(tmpDir, getKey())
+	basePath := filepath.Base(filename)
+
+	bigBuff := make([]byte, 75000)
+	rand.Read(bigBuff)
+
+	err = storage.WriteFile(basePath, bigBuff)
+	require.Nil(b, err)
+
+	data := make([]byte, len(bigBuff))
+
+	reader, fail := storage.GetFileReader(basePath)
+	assert.Nil(b, fail)
+	assert.NotNil(b, reader)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(bigBuff)))
+	for n := 0; n < b.N; n++ {
+		reader, _ := storage.GetFileReader(basePath)
+		io.ReadFull(reader, data)
+	}
 }
 
 func BenchmarkCountFilesEncrypted(b *testing.B) {
@@ -203,7 +265,7 @@ func BenchmarkExistsEncrypted(b *testing.B) {
 	}
 }
 
-func BenchmarkUpdateFileEncrypted(b *testing.B) {
+func BenchmarkWriteFileEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "updated.*")
@@ -220,7 +282,7 @@ func BenchmarkUpdateFileEncrypted(b *testing.B) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
-		storage.UpdateFile(basePath, bigBuff)
+		storage.WriteFile(basePath, bigBuff)
 	}
 }
 

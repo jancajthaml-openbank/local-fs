@@ -14,12 +14,14 @@
 
 package storage
 
+import "io"
+
 type Storage interface {
 	ListDirectory(string) ([]string, error)
 	CountFiles(string) (int, error)
 	Exists(string) (bool, error)
 	TouchFile(string) error
-	GetFileReader(string) (*fileReader, error)
+	GetFileReader(string) (*io.Reader, error)
 	ReadFileFully(string) ([]byte, error)
 	WriteFile(string, []byte) error
 	DeleteFile(string) error

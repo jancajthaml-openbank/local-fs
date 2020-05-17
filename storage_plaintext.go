@@ -15,16 +15,33 @@
 package storage
 
 import (
-	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
-	"runtime"
-	"sort"
-	"syscall"
-	"unsafe"
 )
+
+type plaintextFileReader struct {
+	source *os.File
+}
+
+func (reader *plaintextFileReader) Read(p []byte) (int, error) {
+	if reader == nil {
+		return 0, fmt.Errorf("cannot read into nil pointer")
+	}
+	if reader.source == nil {
+		return 0, fmt.Errorf("no source to read from")
+	}
+	n, err := reader.source.Read(p)
+	if n == 0 {
+		return 0, io.EOF
+	}
+	if err != nil {
+		reader.source.Close()
+		return n, err
+	}
+	return n, nil
+}
 
 // Storage is a fascade to access plaintext storage
 type PlaintextStorage struct {
@@ -45,183 +62,44 @@ func NewPlaintextStorage(root string) PlaintextStorage {
 
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
-func (storage PlaintextStorage) ListDirectory(path string, ascending bool) (result []string, err error) {
-	var (
-		n  int
-		dh *os.File
-		de *syscall.Dirent
-	)
-
-	dh, err = os.Open(filepath.Clean(storage.Root + "/" + path))
-	if err != nil {
-		return
-	}
-
-	fd := int(dh.Fd())
-	result = make([]string, 0)
-
-	scratchBuffer := make([]byte, storage.bufferSize)
-
-	for {
-		n, err = syscall.ReadDirent(fd, scratchBuffer)
-		runtime.KeepAlive(dh)
-		if err != nil {
-			if r := dh.Close(); r != nil {
-				err = r
-			}
-			return
-		}
-		if n <= 0 {
-			break
-		}
-		buf := scratchBuffer[:n]
-		for len(buf) > 0 {
-			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0]))
-			buf = buf[de.Reclen:]
-
-			if de.Ino == 0 {
-				continue
-			}
-
-			reg := int(uint64(de.Reclen) - uint64(unsafe.Offsetof(syscall.Dirent{}.Name)))
-
-			var nameSlice []byte
-			header := (*reflect.SliceHeader)(unsafe.Pointer(&nameSlice))
-			header.Cap = reg
-			header.Len = reg
-			header.Data = uintptr(unsafe.Pointer(&de.Name[0]))
-
-			if index := bytes.IndexByte(nameSlice, 0); index >= 0 {
-				header.Cap = index
-				header.Len = index
-			}
-
-			switch len(nameSlice) {
-			case 0:
-				continue
-			case 1:
-				if nameSlice[0] == '.' {
-					continue
-				}
-			case 2:
-				if nameSlice[0] == '.' && nameSlice[1] == '.' {
-					continue
-				}
-			}
-			result = append(result, string(nameSlice))
-		}
-	}
-
-	if r := dh.Close(); r != nil {
-		err = r
-		return
-	}
-
-	if ascending {
-		sort.Slice(result, func(i, j int) bool {
-			return result[i] < result[j]
-		})
-	} else {
-		sort.Slice(result, func(i, j int) bool {
-			return result[i] > result[j]
-		})
-	}
-
-	return
+func (storage PlaintextStorage) ListDirectory(path string, ascending bool) ([]string, error) {
+	return listDirectory(storage.Root+"/"+path, storage.bufferSize, ascending)
 }
 
 // CountFiles returns number of items in directory
-func (storage PlaintextStorage) CountFiles(path string) (result int, err error) {
-	var (
-		n  int
-		dh *os.File
-		de *syscall.Dirent
-	)
-
-	dh, err = os.Open(filepath.Clean(storage.Root + "/" + path))
-	if err != nil {
-		return
-	}
-
-	fd := int(dh.Fd())
-
-	scratchBuffer := make([]byte, storage.bufferSize)
-
-	for {
-		n, err = syscall.ReadDirent(fd, scratchBuffer)
-		runtime.KeepAlive(dh)
-		if err != nil {
-			if r := dh.Close(); r != nil {
-				err = r
-			}
-			return
-		}
-		if n <= 0 {
-			break
-		}
-		buf := scratchBuffer[:n]
-		for len(buf) > 0 {
-			de = (*syscall.Dirent)(unsafe.Pointer(&buf[0]))
-			buf = buf[de.Reclen:]
-			if de.Ino == 0 || de.Type != syscall.DT_REG {
-				continue
-			}
-			result++
-		}
-	}
-
-	if r := dh.Close(); r != nil {
-		err = r
-	}
-
-	return
+func (storage PlaintextStorage) CountFiles(path string) (int, error) {
+	return countFiles(storage.Root+"/"+path, storage.bufferSize)
 }
 
-// Exists returns true if absolute path exists
+// Exists returns true if path exists
 func (storage PlaintextStorage) Exists(path string) (bool, error) {
-	var (
-		trusted = new(syscall.Stat_t)
-		cleaned = filepath.Clean(storage.Root + "/" + path)
-		err     error
-	)
-	err = syscall.Stat(cleaned, trusted)
-	if err == nil {
-		return true, nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
-	}
+	return nodeExists(storage.Root + "/" + path)
 }
 
 // TouchFile creates files given absolute path if file does not already exist
 func (storage PlaintextStorage) TouchFile(path string) error {
-	cleanedPath := filepath.Clean(storage.Root + "/" + path)
-	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
-		return err
-	}
-	f, err := os.OpenFile(cleanedPath, os.O_RDONLY|os.O_CREATE|os.O_EXCL, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return nil
+	return touch(storage.Root + "/" + path)
+}
+
+// DeleteFile removes file given absolute path if that file does exists
+func (storage PlaintextStorage) DeleteFile(path string) error {
+	return os.Remove(filepath.Clean(storage.Root + "/" + path))
 }
 
 // GetFileReader creates file io.Reader
-func (storage PlaintextStorage) GetFileReader(path string) (*fileReader, error) {
+func (storage PlaintextStorage) GetFileReader(path string) (*plaintextFileReader, error) {
 	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
 
-	reader := new(fileReader)
+	reader := new(plaintextFileReader)
 	reader.source = f
 
 	return reader, nil
 }
 
-// ReadFileFully reads whole file given absolute path
+// ReadFileFully reads whole file given path
 func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 	f, err := os.OpenFile(filepath.Clean(storage.Root+"/"+path), os.O_RDONLY, os.ModePerm)
 	if err != nil {
@@ -240,9 +118,9 @@ func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 	return buf, nil
 }
 
-// WriteFile writes data given absolute path to a file if that file does not
+// WriteFileExclusive writes data given path to a file if that file does not
 // already exists
-func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
+func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) error {
 	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
 		return err
@@ -258,14 +136,9 @@ func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
 	return nil
 }
 
-// DeleteFile removes file given absolute path if that file does exists
-func (storage PlaintextStorage) DeleteFile(path string) error {
-	return os.Remove(filepath.Clean(storage.Root + "/" + path))
-}
-
-// UpdateFile rewrite file with data given absolute path to a file if that file
+// WriteFile rewrite file with data given absolute path to a file if that file
 // exist
-func (storage PlaintextStorage) UpdateFile(path string, data []byte) (err error) {
+func (storage PlaintextStorage) WriteFile(path string, data []byte) (err error) {
 	cleanedPath := filepath.Clean(storage.Root + "/" + path)
 	var f *os.File
 	f, err = os.OpenFile(cleanedPath, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
