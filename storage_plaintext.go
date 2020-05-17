@@ -67,7 +67,7 @@ func (storage PlaintextStorage) DeleteFile(path string) error {
 // ReadFileFully reads whole file given path
 func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	fd, err := syscall.Open(filepath.Dir(filename), syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
+	fd, err := syscall.Open(filename, syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return nil, err
 	}
