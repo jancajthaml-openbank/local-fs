@@ -35,3 +35,7 @@ jobs:
     - name: Unit Test
       run:  |
         go test -v ./... -timeout=10s
+
+    - name: Benchmarck Test
+      run:  |
+        GOMAXPROCS=1 \ go test -v ./... -run=^$ -bench=. -benchmem -timeout=2m
