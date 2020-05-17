@@ -47,8 +47,7 @@ func NewEncryptedStorage(root string, key []byte) EncryptedStorage {
 	}
 }
 
-// Encrypt data with encryption key
-func (storage EncryptedStorage) Encrypt(data []byte) ([]byte, error) {
+func (storage EncryptedStorage) encrypt(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(storage.encryptionKey)
 	if err != nil {
 		return nil, err
@@ -63,8 +62,7 @@ func (storage EncryptedStorage) Encrypt(data []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-// Decrypt data with encryption key
-func (storage EncryptedStorage) Decrypt(data []byte) ([]byte, error) {
+func (storage EncryptedStorage) decrypt(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(storage.encryptionKey)
 	if err != nil {
 		return nil, err
@@ -129,7 +127,7 @@ func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 		return nil, err
 	}
 	// FIXME inline
-	return storage.Decrypt(buf)
+	return storage.decrypt(buf)
 }
 
 // WriteFileExclusive writes data given path to a file if that file does not
@@ -140,7 +138,7 @@ func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) err
 		return err
 	}
 	// FIXME inline
-	out, err := storage.Encrypt(data)
+	out, err := storage.encrypt(data)
 	if err != nil {
 		return err
 	}
@@ -167,7 +165,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 		return err
 	}
 	// FIXME inline
-	out, err := storage.Encrypt(data)
+	out, err := storage.encrypt(data)
 	if err != nil {
 		return err
 	}
@@ -212,7 +210,7 @@ func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
 		return err
 	}
 	// FIXME inline
-	head, err := storage.Decrypt(buf)
+	head, err := storage.decrypt(buf)
 	if err != nil {
 		return err
 	}
@@ -220,7 +218,7 @@ func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
 	tail = append(tail, head...)
 	tail = append(tail, data...)
 	// FIXME inline
-	out, err := storage.Encrypt(tail)
+	out, err := storage.encrypt(tail)
 	if err != nil {
 		return err
 	}
