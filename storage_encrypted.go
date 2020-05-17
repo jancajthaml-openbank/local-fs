@@ -110,7 +110,7 @@ func (storage EncryptedStorage) DeleteFile(path string) error {
 // ReadFileFully reads whole file given path
 func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	fd, err := syscall.Open(filename, syscall.O_RDONLY, 0600)
+	fd, err := syscall.Open(filename, syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) err
 	if err != nil {
 		return err
 	}
-	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_EXCL, 0600)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_EXCL|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 // not exist
 func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.Root + "/" + path)
-	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC, 0600)
+	fd, err := syscall.Open(filename, syscall.O_CREAT|syscall.O_WRONLY|syscall.O_TRUNC|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return err
 	}

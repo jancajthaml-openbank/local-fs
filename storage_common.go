@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"syscall"
 	"unsafe"
@@ -39,30 +38,24 @@ func nameFromDirent(dirent *syscall.Dirent) []byte {
 	return name
 }
 
-func listDirectory(abspath string, bufferSize int, ascending bool) (result []string, err error) {
+func listDirectory(absPath string, bufferSize int, ascending bool) (result []string, err error) {
 	var (
 		n  int
-		dh *os.File
 		de *syscall.Dirent
 	)
 
-	// FIXME direct FD
-	dh, err = os.Open(filepath.Clean(abspath))
+	fd, err := syscall.Open(filepath.Clean(absPath), syscall.O_RDONLY, 0600)
 	if err != nil {
 		return
 	}
 
-	// FIXME direct FD
-	fd := int(dh.Fd())
 	result = make([]string, 0)
-
 	scratchBuffer := make([]byte, bufferSize)
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
-		runtime.KeepAlive(dh)
 		if err != nil {
-			if r := dh.Close(); r != nil {
+			if r := syscall.Close(fd); r != nil {
 				err = r
 			}
 			return
@@ -108,7 +101,7 @@ func listDirectory(abspath string, bufferSize int, ascending bool) (result []str
 		}
 	}
 
-	if r := dh.Close(); r != nil {
+	if r := syscall.Close(fd); r != nil {
 		err = r
 		return
 	}
@@ -129,26 +122,20 @@ func listDirectory(abspath string, bufferSize int, ascending bool) (result []str
 func countFiles(absPath string, bufferSize int) (result int, err error) {
 	var (
 		n  int
-		dh *os.File
 		de *syscall.Dirent
 	)
 
-	// FIXME direct FD
-	dh, err = os.Open(filepath.Clean(absPath))
+	fd, err := syscall.Open(filepath.Clean(absPath), syscall.O_RDONLY, 0600)
 	if err != nil {
 		return
 	}
-
-	// FIXME direct FD
-	fd := int(dh.Fd())
 
 	scratchBuffer := make([]byte, bufferSize)
 
 	for {
 		n, err = syscall.ReadDirent(fd, scratchBuffer)
-		runtime.KeepAlive(dh)
 		if err != nil {
-			if r := dh.Close(); r != nil {
+			if r := syscall.Close(fd); r != nil {
 				err = r
 			}
 			return
@@ -167,7 +154,7 @@ func countFiles(absPath string, bufferSize int) (result int, err error) {
 		}
 	}
 
-	if r := dh.Close(); r != nil {
+	if r := syscall.Close(fd); r != nil {
 		err = r
 	}
 
