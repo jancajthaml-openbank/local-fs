@@ -2,6 +2,7 @@ package storage
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,11 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testPad(version int) string {
-	return fmt.Sprintf("%010d", version)
+func getKey() []byte {
+	src := []byte("cf434a97e34dc7a7feb918de8dfdbfbe10397bcbdcb84ca6779df518c264ad8d")
+	dst := make([]byte, hex.DecodedLen(len(src)))
+	n, _ := hex.Decode(dst, src)
+	return dst[:n]
 }
 
-func TestExists(t *testing.T) {
+func TestExistsEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "existent.*.tmp")
@@ -24,7 +28,7 @@ func TestExists(t *testing.T) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	var ok bool
 	var fail error
@@ -38,7 +42,7 @@ func TestExists(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestReadFileFully(t *testing.T) {
+func TestReadFileFullyEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "readable.*.tmp")
@@ -47,12 +51,12 @@ func TestReadFileFully(t *testing.T) {
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
 
-	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
+	err = storage.WriteFile(basePath, bigBuff)
 	require.Nil(t, err)
 
 	var data []byte
@@ -64,14 +68,14 @@ func TestReadFileFully(t *testing.T) {
 	assert.Equal(t, bigBuff, data)
 }
 
-func TestListDirectory(t *testing.T) {
+func TestListDirectoryEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	NewSlice := func(start, end, step int) []int {
 		if step <= 0 || end < start {
@@ -91,7 +95,7 @@ func TestListDirectory(t *testing.T) {
 	items := NewSlice(0, 10, 1)
 
 	for _, i := range items {
-		var file, _ = os.Create(tmpdir + "/" + testPad(i))
+		var file, _ = os.Create(fmt.Sprintf("%s/%010d", tmpdir, i))
 		file.Close()
 	}
 
@@ -100,27 +104,27 @@ func TestListDirectory(t *testing.T) {
 
 	assert.NotNil(t, list)
 	assert.Equal(t, len(items), len(list))
-	assert.Equal(t, testPad(items[0]), list[0])
-	assert.Equal(t, testPad(items[len(items)-1]), list[len(list)-1])
+	assert.Equal(t, fmt.Sprintf("%010d", items[0]), list[0])
+	assert.Equal(t, fmt.Sprintf("%010d", items[len(items)-1]), list[len(list)-1])
 }
 
-func TestCountFiles(t *testing.T) {
+func TestCountFilesEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 60; i++ {
-		file, err := os.Create(tmpdir + "/" + testPad(i) + "F")
+		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
 		require.Nil(t, err)
 		file.Close()
 	}
 
 	for i := 0; i < 40; i++ {
-		err := os.MkdirAll(tmpdir+"/"+testPad(i)+"D", os.ModePerm)
+		err := os.MkdirAll(fmt.Sprintf("%s/%010dD", tmpdir, i), os.ModePerm)
 		require.Nil(t, err)
 	}
 
@@ -129,14 +133,14 @@ func TestCountFiles(t *testing.T) {
 	assert.Equal(t, 60, numberOfFiles)
 }
 
-func BenchmarkCountFiles(b *testing.B) {
+func BenchmarkCountFilesEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -153,14 +157,14 @@ func BenchmarkCountFiles(b *testing.B) {
 	}
 }
 
-func BenchmarkListDirectory(b *testing.B) {
+func BenchmarkListDirectoryEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
 	require.Nil(b, err)
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -177,7 +181,7 @@ func BenchmarkListDirectory(b *testing.B) {
 	}
 }
 
-func BenchmarkExists(b *testing.B) {
+func BenchmarkExistsEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "exists.*")
@@ -185,7 +189,7 @@ func BenchmarkExists(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 
 	b.ResetTimer()
@@ -195,7 +199,7 @@ func BenchmarkExists(b *testing.B) {
 	}
 }
 
-func BenchmarkUpdateFile(b *testing.B) {
+func BenchmarkWriteFileEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "updated.*")
@@ -203,20 +207,20 @@ func BenchmarkUpdateFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	b.SetBytes(int64(len(bigBuff)))
 	for n := 0; n < b.N; n++ {
-		storage.UpdateFile(basePath, bigBuff)
+		storage.WriteFile(basePath, bigBuff)
 	}
 }
 
-func BenchmarkAppendFile(b *testing.B) {
+func BenchmarkAppendFileEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "appended.*")
@@ -224,9 +228,9 @@ func BenchmarkAppendFile(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	b.ResetTimer()
@@ -237,7 +241,7 @@ func BenchmarkAppendFile(b *testing.B) {
 	}
 }
 
-func BenchmarkReadFileFully(b *testing.B) {
+func BenchmarkReadFileFullyEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "readable.*")
@@ -245,10 +249,10 @@ func BenchmarkReadFileFully(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewStorage(tmpDir)
+	storage := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 
-	bigBuff := make([]byte, 75000)
+	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
 
 	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)

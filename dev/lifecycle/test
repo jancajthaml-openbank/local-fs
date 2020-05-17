@@ -43,7 +43,7 @@ cd /go/src/github.com/jancajthaml-openbank/${TARGET_PACKAGE}
   -v ./... \
   -coverprofile=${coverage_out} \
   -coverpkg=./... \
-  -timeout=20s | tee ${test_out}
+  -timeout=2m | tee ${test_out}
 
 go2xunit \
   -fail \
@@ -62,4 +62,4 @@ GOMAXPROCS=1 \
   -run=^$ \
   -bench=. \
   -benchmem \
-  -timeout=1m
+  -timeout=2m
