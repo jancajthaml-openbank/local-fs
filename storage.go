@@ -21,6 +21,7 @@ type Storage interface {
 	Exists(string) (bool, error)
 	TouchFile(string) error
 	ReadFileFully(string) ([]byte, error)
+	WriteFileExclusive(string, []byte) error
 	WriteFile(string, []byte) error
 	DeleteFile(string) error
 	UpdateFile(string, []byte) error
