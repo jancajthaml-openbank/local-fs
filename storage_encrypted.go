@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 // EncryptedStorage is a fascade to access encrypted storage
@@ -93,6 +94,11 @@ func (storage EncryptedStorage) CountFiles(path string) (int, error) {
 // Exists returns true if path exists
 func (storage EncryptedStorage) Exists(path string) (bool, error) {
 	return nodeExists(storage.Root + "/" + path)
+}
+
+// LastModification returns time of last modification
+func (storage EncryptedStorage) LastModification(path string) (time.Time, error) {
+	return modTime(storage.Root + "/" + path)
 }
 
 // TouchFile creates files given absolute path if file does not already exist

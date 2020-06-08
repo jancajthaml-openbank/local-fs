@@ -19,6 +19,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 // PlaintextStorage is a fascade to access plaintext storage
@@ -52,6 +53,11 @@ func (storage PlaintextStorage) CountFiles(path string) (int, error) {
 // Exists returns true if path exists
 func (storage PlaintextStorage) Exists(path string) (bool, error) {
 	return nodeExists(storage.Root + "/" + path)
+}
+
+// LastModification returns time of last modification
+func (storage PlaintextStorage) LastModification(path string) (time.Time, error) {
+	return modTime(storage.Root + "/" + path)
 }
 
 // TouchFile creates files given absolute path if file does not already exist

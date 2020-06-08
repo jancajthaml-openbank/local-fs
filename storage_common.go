@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sort"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -175,6 +176,19 @@ func nodeExists(absPath string) (bool, error) {
 	} else {
 		return false, err
 	}
+}
+
+func modTime(absPath string) (time.Time, error) {
+	var (
+		trusted = new(syscall.Stat_t)
+		cleaned = filepath.Clean(absPath)
+		err     error
+	)
+	err = syscall.Stat(cleaned, trusted)
+	if err != nil {
+		return time.Now(), err
+	}
+	return time.Unix(int64(trusted.Mtim.Sec), int64(trusted.Mtim.Nsec)), nil
 }
 
 func touch(absPath string) error {
