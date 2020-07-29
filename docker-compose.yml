@@ -1,4 +1,4 @@
-version: '2'
+version: '3.7'
 
 # ---------------------------------------------------------------------------- #
 
@@ -6,48 +6,41 @@ services:
 
   # -------------------------------------------------------------------------- #
 
-  go:
-    image: jancajthaml/go
+  go: &go
+    image: docker.io/jancajthaml/go
+    tty: true
     volumes:
       - .:/project
-      - .:/go/src/github.com/jancajthaml-openbank/local-fs
-    working_dir: /go/src/github.com/jancajthaml-openbank/local-fs
+    working_dir: /project
     environment:
       - GOOS
       - GOARCH
       - GOPATH=/go
       - COMPOSE_PROJECT_NAME
     entrypoint: ["go"]
-    privileged: true
 
   # -------------------------------------------------------------------------- #
 
   sync:
-    extends: go
+    <<: *go
     entrypoint: ["/project/dev/lifecycle/sync"]
 
   # -------------------------------------------------------------------------- #
 
-  update:
-    extends: go
-    entrypoint: ["/project/dev/lifecycle/update"]
-
-  # -------------------------------------------------------------------------- #
-
   lint:
-    extends: go
+    <<: *go
     entrypoint: ["/project/dev/lifecycle/lint"]
 
   # -------------------------------------------------------------------------- #
 
   sec:
-    extends: go
+    <<: *go
     entrypoint: ["/project/dev/lifecycle/sec"]
 
   # -------------------------------------------------------------------------- #
 
   test:
-    extends: go
+    <<: *go
     entrypoint: ["/project/dev/lifecycle/test"]
 
 # ---------------------------------------------------------------------------- #
