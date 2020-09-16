@@ -8,6 +8,8 @@ Local File System Database
 
 ## Usage
 
+both plaintext and encrypted storage have same api
+
 ```go
 import (
   localfs "github.com/jancajthaml-openbank/local-fs"
@@ -15,7 +17,7 @@ import (
 
 ...
 
-storage := localfs.NewStorage("/tmp")
+storage := localfs.NewPlaintextStorage("/tmp")
 
 // list nodes at /tmp/foo in ascending order
 asc, err := storage.ListDirectory("foo", true)
@@ -71,16 +73,12 @@ import (
 
 ...
 
-storage := localfs.NewStorage("/tmp/data")
-storage.SetEncryptionKey("/tmp/secrets/key")
-
-out, err := storage.Encrypt([]byte("pii"))
-err := storage.WriteFile("foo", out)
+storage := localfs.NewEncryptedStorage("/tmp/data", "/tmp/secrets/key")
+err := storage.WriteFile("foo", []byte("pii"))
 
 ...
 
-in, err := storage.ReadFileFully("/tmp/data/foo")
-data, err := storage.Decrypt(in)
+data, err := storage.ReadFileFully("/tmp/data/foo")
 ```
 
 ## License
