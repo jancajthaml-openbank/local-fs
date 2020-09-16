@@ -8,9 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func getKey() []byte {
@@ -24,29 +21,43 @@ func TestExistsEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "existent.*.tmp")
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when creating temp file %+v", err)
+	}
+
 	filename := file.Name()
 	defer os.Remove(filename)
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	var ok bool
-	var fail error
 
-	ok, fail = storage.Exists(filepath.Base(filename))
-	assert.Nil(t, fail)
-	assert.True(t, ok)
+	ok, err = storage.Exists(filepath.Base(filename))
+	if err != nil {
+		t.Errorf("unexpected error when calling Exists %+v", err)
+	}
+	if !ok {
+		t.Errorf("expected Exists to return true for existent file")
+	}
 
-	ok, fail = storage.Exists(filepath.Base(filename + "xxx"))
-	assert.Nil(t, fail)
-	assert.False(t, ok)
+	ok, err = storage.Exists(filepath.Base(filename + "xxx"))
+
+	if err != nil {
+		t.Errorf("unexpected error when calling Exists %+v", err)
+	}
+	if ok {
+		t.Errorf("expected Exists to return false for non existent file")
+	}
 }
 
 func TestReadFileFullyEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "readable.*.tmp")
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when creating temp file %+v", err)
+	}
+
 	filename := file.Name()
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
@@ -57,22 +68,32 @@ func TestReadFileFullyEncrypted(t *testing.T) {
 	rand.Read(bigBuff)
 
 	err = storage.WriteFile(basePath, bigBuff)
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when calling WriteFile %+v", err)
+	}
 
 	var data []byte
-	var fail error
 
-	data, fail = storage.ReadFileFully(basePath)
-	assert.Nil(t, fail)
-	assert.Equal(t, len(bigBuff), len(data))
-	assert.Equal(t, bigBuff, data)
+	data, err = storage.ReadFileFully(basePath)
+
+	if err != nil {
+		t.Errorf("unexpected error when calling ReadFileFully %+v", err)
+	}
+	if len(bigBuff) != len(data) {
+		t.Errorf("expected to read %d bytes but red %d instead", len(data), len(bigBuff))
+	}
+	if string(bigBuff) != string(data) {
+		t.Errorf("expected to read %s but got %s instead", string(data), string(bigBuff))
+	}
 }
 
 func TestListDirectoryEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	defer os.RemoveAll(tmpdir)
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
@@ -89,7 +110,10 @@ func TestListDirectoryEncrypted(t *testing.T) {
 		return s
 	}
 
-	require.Nil(t, os.MkdirAll(tmpdir, os.ModePerm))
+	err = os.MkdirAll(tmpdir, os.ModePerm)
+	if err != nil {
+		t.Fatalf("unexpected error when asserting directories %+v", err)
+	}
 	defer os.RemoveAll(tmpdir)
 
 	items := NewSlice(0, 10, 1)
@@ -100,51 +124,75 @@ func TestListDirectoryEncrypted(t *testing.T) {
 	}
 
 	list, err := storage.ListDirectory(filepath.Base(tmpdir), true)
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when calling ListDirectory %+v", err)
+	}
 
-	assert.NotNil(t, list)
-	assert.Equal(t, len(items), len(list))
-	assert.Equal(t, fmt.Sprintf("%010d", items[0]), list[0])
-	assert.Equal(t, fmt.Sprintf("%010d", items[len(items)-1]), list[len(list)-1])
+	if list == nil {
+		t.Errorf("expected slice got nothing")
+	}
+	if len(items) != len(list) {
+		t.Errorf("expected to get %d files got %d instead", len(items), len(list))
+	}
+	if fmt.Sprintf("%010d", items[0]) != list[0] {
+		t.Errorf("expected first item to be %s got %s instead", fmt.Sprintf("%010d", items[0]), list[0])
+	}
+	if fmt.Sprintf("%010d", items[len(items)-1]) != list[len(list)-1] {
+		t.Errorf("expected last item to be %s got %s instead", fmt.Sprintf("%010d", items[len(items)-1]), list[len(list)-1])
+	}
 }
 
 func TestCountFilesEncrypted(t *testing.T) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
-	require.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	defer os.RemoveAll(tmpdir)
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 60; i++ {
 		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
-		require.Nil(t, err)
+		if err != nil {
+			t.Fatalf("unexpected error when creating temp file %+v", err)
+		}
 		file.Close()
 	}
 
 	for i := 0; i < 40; i++ {
 		err := os.MkdirAll(fmt.Sprintf("%s/%010dD", tmpdir, i), os.ModePerm)
-		require.Nil(t, err)
+		if err != nil {
+			t.Fatalf("unexpected error when asserting directories %+v", err)
+		}
 	}
 
 	numberOfFiles, err := storage.CountFiles(filepath.Base(tmpdir))
-	require.Nil(t, err)
-	assert.Equal(t, 60, numberOfFiles)
+	if err != nil {
+		t.Fatalf("unexpected error when calling CountFiles %+v", err)
+	}
+	if numberOfFiles != 60 {
+		t.Errorf("expected to count 60 files, counted %d instead", numberOfFiles)
+	}
 }
 
 func BenchmarkCountFilesEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	defer os.RemoveAll(tmpdir)
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
-		require.Nil(b, err)
+		if err != nil {
+			b.Fatalf("unexpected error when creating temp file %+v", err)
+		}
 		file.Close()
 	}
 
@@ -161,14 +209,18 @@ func BenchmarkListDirectoryEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	tmpdir, err := ioutil.TempDir(tmpDir, "test_storage")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	defer os.RemoveAll(tmpdir)
 
 	storage := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
-		require.Nil(b, err)
+		if err != nil {
+			b.Fatalf("unexpected error when creating temp file %+v", err)
+		}
 		file.Close()
 	}
 
@@ -185,7 +237,9 @@ func BenchmarkExistsEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "exists.*")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	filename := file.Name()
 	defer os.Remove(filename)
 
@@ -203,7 +257,9 @@ func BenchmarkWriteFileEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "updated.*")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	filename := file.Name()
 	defer os.Remove(filename)
 
@@ -224,7 +280,9 @@ func BenchmarkAppendFileEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "appended.*")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	filename := file.Name()
 	defer os.Remove(filename)
 
@@ -245,7 +303,9 @@ func BenchmarkReadFileFullyEncrypted(b *testing.B) {
 	tmpDir := os.TempDir()
 
 	file, err := ioutil.TempFile(tmpDir, "readable.*")
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when creating temp file %+v", err)
+	}
 	filename := file.Name()
 	defer os.Remove(filename)
 
@@ -256,7 +316,9 @@ func BenchmarkReadFileFullyEncrypted(b *testing.B) {
 	rand.Read(bigBuff)
 
 	err = ioutil.WriteFile(filename, bigBuff, os.ModePerm)
-	require.Nil(b, err)
+	if err != nil {
+		b.Fatalf("unexpected error when writing to file %+v", err)
+	}
 
 	b.ResetTimer()
 	b.ReportAllocs()
