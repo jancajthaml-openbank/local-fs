@@ -3,6 +3,7 @@
 Local File System Database
 
 ![Health Check](https://github.com/jancajthaml-openbank/local-fs/workflows/Health%20Check/badge.svg)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs?ref=badge_shield)
 
 [![godoc for jancajthaml-openbank/local-fs](https://godoc.org/github.com/nathany/looper?status.svg)](https://godoc.org/github.com/jancajthaml-openbank/local-fs)
 
@@ -82,3 +83,7 @@ err := storage.WriteFile("foo", out)
 in, err := storage.ReadFileFully("/tmp/data/foo")
 data, err := storage.Decrypt(in)
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs?ref=badge_large)
