@@ -82,3 +82,9 @@ err := storage.WriteFile("foo", out)
 in, err := storage.ReadFileFully("/tmp/data/foo")
 data, err := storage.Decrypt(in)
 ```
+
+## License
+
+Licensed under Apache 2.0 see LICENSE.md for details
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fjancajthaml-openbank%2Flocal-fs?ref=badge_large)
