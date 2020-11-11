@@ -14,7 +14,10 @@
 
 package storage
 
+import "os"
+
 type Storage interface {
+	Chmod(absPath string, mod os.FileMode) error
 	ListDirectory(string, bool) ([]string, error)
 	CountFiles(string) (int, error)
 	Exists(string) (bool, error)
