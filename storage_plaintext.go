@@ -23,22 +23,22 @@ import (
 	"time"
 )
 
-// PlaintextStorage is a fascade to access plaintext storage
-type PlaintextStorage struct {
-	Storage
+// Plaintext is a fascade to access plaintext storage
+type Plaintext struct {
+	contract
 	root       string
 	bufferSize int
 }
 
-// NewPlaintextStorage returns new storage over given root
-func NewPlaintextStorage(root string) (Storage, error) {
+// NewPlaintext returns new storage over given root
+func NewPlaintext(root string) (contract, error) {
 	if root == "" {
-		return NilStorage{}, fmt.Errorf("invalid root directory")
+		return Nil{}, fmt.Errorf("invalid root directory")
 	}
 	if os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
-		return NilStorage{}, fmt.Errorf("unable to assert root storage directory")
+		return Nil{}, fmt.Errorf("unable to assert root storage directory")
 	}
-	return PlaintextStorage{
+	return Plaintext{
 		root:       root,
 		bufferSize: 8192,
 	}, nil
@@ -46,37 +46,37 @@ func NewPlaintextStorage(root string) (Storage, error) {
 
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
-func (storage PlaintextStorage) ListDirectory(path string, ascending bool) ([]string, error) {
+func (storage Plaintext) ListDirectory(path string, ascending bool) ([]string, error) {
 	return listDirectory(storage.root+"/"+path, storage.bufferSize, ascending)
 }
 
 // CountFiles returns number of items in directory
-func (storage PlaintextStorage) CountFiles(path string) (int, error) {
+func (storage Plaintext) CountFiles(path string) (int, error) {
 	return countFiles(storage.root+"/"+path, storage.bufferSize)
 }
 
 // Exists returns true if path exists
-func (storage PlaintextStorage) Exists(path string) (bool, error) {
+func (storage Plaintext) Exists(path string) (bool, error) {
 	return nodeExists(storage.root + "/" + path)
 }
 
 // LastModification returns time of last modification
-func (storage PlaintextStorage) LastModification(path string) (time.Time, error) {
+func (storage Plaintext) LastModification(path string) (time.Time, error) {
 	return modTime(storage.root + "/" + path)
 }
 
 // TouchFile creates files given absolute path if file does not already exist
-func (storage PlaintextStorage) TouchFile(path string) error {
+func (storage Plaintext) TouchFile(path string) error {
 	return touch(storage.root + "/" + path)
 }
 
 // DeleteFile removes file given absolute path if that file does exists
-func (storage PlaintextStorage) DeleteFile(path string) error {
+func (storage Plaintext) DeleteFile(path string) error {
 	return os.Remove(filepath.Clean(storage.root + "/" + path))
 }
 
 // ReadFileFully reads whole file given path
-func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
+func (storage Plaintext) ReadFileFully(path string) ([]byte, error) {
 	filename := filepath.Clean(storage.root + "/" + path)
 	fd, err := syscall.Open(filename, syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
 	if err != nil {
@@ -100,7 +100,7 @@ func (storage PlaintextStorage) ReadFileFully(path string) ([]byte, error) {
 
 // WriteFileExclusive writes data given path to a file if that file does not
 // already exists
-func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) error {
+func (storage Plaintext) WriteFileExclusive(path string, data []byte) error {
 	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
@@ -122,7 +122,7 @@ func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) err
 
 // WriteFile writes data given absolute path to a file, creates it if it does
 // not exist
-func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
+func (storage Plaintext) WriteFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
@@ -144,7 +144,7 @@ func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
 
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
-func (storage PlaintextStorage) AppendFile(path string, data []byte) error {
+func (storage Plaintext) AppendFile(path string, data []byte) error {
 	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
