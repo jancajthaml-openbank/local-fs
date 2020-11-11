@@ -14,7 +14,10 @@
 
 package storage
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 type Storage interface {
 	Chmod(absPath string, mod os.FileMode) error
@@ -28,4 +31,5 @@ type Storage interface {
 	DeleteFile(string) error
 	UpdateFile(string, []byte) error
 	AppendFile(string, []byte) error
+	LastModification(string) (time.Time, error)
 }
