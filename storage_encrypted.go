@@ -28,24 +28,28 @@ import (
 
 // EncryptedStorage is a fascade to access encrypted storage
 type EncryptedStorage struct {
-	Root          string
+	Storage
+	root          string
 	bufferSize    int
 	encryptionKey []byte
 }
 
 // NewEncryptedStorage returns new storage over given root
-func NewEncryptedStorage(root string, key []byte) EncryptedStorage {
-	if root == "" || os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
-		panic("unable to assert root storage directory")
+func NewEncryptedStorage(root string, key []byte) (Storage, error) {
+	if root == "" {
+		return NilStorage{}, fmt.Errorf("invalid root directory")
+	}
+	if os.MkdirAll(filepath.Clean(root), os.ModePerm) != nil {
+		return NilStorage{}, fmt.Errorf("unable to assert root storage directory")
 	}
 	if len(key) == 0 {
-		panic("no encryption key setup")
+		return NilStorage{}, fmt.Errorf("no encryption key setup")
 	}
 	return EncryptedStorage{
-		Root:          root,
+		root:          root,
 		bufferSize:    8192,
 		encryptionKey: key,
-	}
+	}, nil
 }
 
 func (storage EncryptedStorage) encrypt(data []byte) ([]byte, error) {
@@ -83,37 +87,37 @@ func (storage EncryptedStorage) decrypt(data []byte) ([]byte, error) {
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
 func (storage EncryptedStorage) ListDirectory(path string, ascending bool) ([]string, error) {
-	return listDirectory(storage.Root+"/"+path, storage.bufferSize, ascending)
+	return listDirectory(storage.root+"/"+path, storage.bufferSize, ascending)
 }
 
 // CountFiles returns number of items in directory
 func (storage EncryptedStorage) CountFiles(path string) (int, error) {
-	return countFiles(storage.Root+"/"+path, storage.bufferSize)
+	return countFiles(storage.root+"/"+path, storage.bufferSize)
 }
 
 // Exists returns true if path exists
 func (storage EncryptedStorage) Exists(path string) (bool, error) {
-	return nodeExists(storage.Root + "/" + path)
+	return nodeExists(storage.root + "/" + path)
 }
 
 // LastModification returns time of last modification
 func (storage EncryptedStorage) LastModification(path string) (time.Time, error) {
-	return modTime(storage.Root + "/" + path)
+	return modTime(storage.root + "/" + path)
 }
 
 // TouchFile creates files given absolute path if file does not already exist
 func (storage EncryptedStorage) TouchFile(path string) error {
-	return touch(storage.Root + "/" + path)
+	return touch(storage.root + "/" + path)
 }
 
 // DeleteFile removes file given absolute path if that file does exists
 func (storage EncryptedStorage) DeleteFile(path string) error {
-	return os.Remove(filepath.Clean(storage.Root + "/" + path))
+	return os.Remove(filepath.Clean(storage.root + "/" + path))
 }
 
 // ReadFileFully reads whole file given path
 func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
-	filename := filepath.Clean(storage.Root + "/" + path)
+	filename := filepath.Clean(storage.root + "/" + path)
 	fd, err := syscall.Open(filename, syscall.O_RDONLY|syscall.O_NONBLOCK, 0600)
 	if err != nil {
 		return nil, err
@@ -139,7 +143,7 @@ func (storage EncryptedStorage) ReadFileFully(path string) ([]byte, error) {
 // WriteFileExclusive writes data given path to a file if that file does not
 // already exists
 func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) error {
-	filename := filepath.Clean(storage.Root + "/" + path)
+	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
 	}
@@ -166,7 +170,7 @@ func (storage EncryptedStorage) WriteFileExclusive(path string, data []byte) err
 // WriteFile writes data given absolute path to a file, creates it if it does
 // not exist
 func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
-	filename := filepath.Clean(storage.Root + "/" + path)
+	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
 	}
@@ -193,7 +197,7 @@ func (storage EncryptedStorage) WriteFile(path string, data []byte) error {
 // AppendFile appens data given absolute path to a file, creates it if it does
 // not exist
 func (storage EncryptedStorage) AppendFile(path string, data []byte) error {
-	filename := filepath.Clean(storage.Root + "/" + path)
+	filename := filepath.Clean(storage.root + "/" + path)
 	if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
 		return err
 	}

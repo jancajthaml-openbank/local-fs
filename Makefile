@@ -7,6 +7,13 @@ export COMPOSE_PROJECT_NAME = local-fs
 .PHONY: all
 all: sync test lint sec
 
+.PHONY: version
+version:
+	@docker-compose \
+		run \
+		--rm version \
+	|| :
+
 .PHONY: lint
 lint:
 	@docker-compose \
