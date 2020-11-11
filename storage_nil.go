@@ -16,12 +16,18 @@ package storage
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
 // NilStorage is a nil storage fascade
 type NilStorage struct {
 	Storage
+}
+
+// Chmod sbut
+func (storage NilStorage) Chmod(path string, mod os.FileMode) error {
+	return fmt.Errorf("storage not initialized properly")
 }
 
 // ListDirectory stub

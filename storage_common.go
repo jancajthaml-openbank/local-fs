@@ -203,3 +203,8 @@ func touch(absPath string) error {
 	defer f.Close()
 	return nil
 }
+
+func chmod(absPath string, mod os.FileMode) error {
+	cleanedPath := filepath.Clean(absPath)
+	return os.Chmod(cleanedPath, mod)
+}

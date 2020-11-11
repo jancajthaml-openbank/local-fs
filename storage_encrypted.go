@@ -84,6 +84,11 @@ func (storage EncryptedStorage) decrypt(data []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+// Chmod sets chmod flag on given file
+func (storage EncryptedStorage) Chmod(path string, mod os.FileMode) error {
+	return chmod(storage.root+"/"+path, mod)
+}
+
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
 func (storage EncryptedStorage) ListDirectory(path string, ascending bool) ([]string, error) {

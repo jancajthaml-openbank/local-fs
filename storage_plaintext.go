@@ -44,6 +44,11 @@ func NewPlaintextStorage(root string) (Storage, error) {
 	}, nil
 }
 
+// Chmod sets chmod flag on given file
+func (storage PlaintextStorage) Chmod(path string, mod os.FileMode) error {
+	return chmod(storage.root+"/"+path, mod)
+}
+
 // ListDirectory returns sorted slice of item names in given absolute path
 // default sorting is ascending
 func (storage PlaintextStorage) ListDirectory(path string, ascending bool) ([]string, error) {
