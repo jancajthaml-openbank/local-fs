@@ -14,7 +14,7 @@
 
 package storage
 
-type contract interface {
+type Storage interface {
 	ListDirectory(string, bool) ([]string, error)
 	CountFiles(string) (int, error)
 	Exists(string) (bool, error)
