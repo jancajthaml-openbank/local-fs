@@ -28,7 +28,7 @@ func TestExistsEncrypted(t *testing.T) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	var ok bool
 
@@ -62,7 +62,7 @@ func TestReadFileFullyEncrypted(t *testing.T) {
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -96,7 +96,7 @@ func TestListDirectoryEncrypted(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	NewSlice := func(start, end, step int) []int {
 		if step <= 0 || end < start {
@@ -151,7 +151,7 @@ func TestCountFilesEncrypted(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 60; i++ {
 		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
@@ -186,7 +186,7 @@ func BenchmarkCountFilesEncrypted(b *testing.B) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -214,7 +214,7 @@ func BenchmarkListDirectoryEncrypted(b *testing.B) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -243,7 +243,7 @@ func BenchmarkExistsEncrypted(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 
 	b.ResetTimer()
@@ -263,7 +263,7 @@ func BenchmarkWriteFileEncrypted(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
@@ -286,7 +286,7 @@ func BenchmarkAppendFileEncrypted(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
@@ -309,7 +309,7 @@ func BenchmarkReadFileFullyEncrypted(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage, _ := NewEncrypted(tmpDir, getKey())
+	storage, _ := NewEncryptedStorage(tmpDir, getKey())
 	basePath := filepath.Base(filename)
 
 	bigBuff := make([]byte, 1024)

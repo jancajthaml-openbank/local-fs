@@ -19,57 +19,57 @@ import (
 	"time"
 )
 
-// Nil is a nil storage fascade
-type Nil struct {
-	contract
+// NilStorage is a nil storage fascade
+type NilStorage struct {
+	Storage
 }
 
 // ListDirectory stub
-func (storage Nil) ListDirectory(path string, ascending bool) ([]string, error) {
+func (storage NilStorage) ListDirectory(path string, ascending bool) ([]string, error) {
 	return nil, fmt.Errorf("storage not initialized properly")
 }
 
 // CountFiles stub
-func (storage Nil) CountFiles(path string) (int, error) {
+func (storage NilStorage) CountFiles(path string) (int, error) {
 	return 0, fmt.Errorf("storage not initialized properly")
 }
 
 // Exists stub
-func (storage Nil) Exists(path string) (bool, error) {
+func (storage NilStorage) Exists(path string) (bool, error) {
 	return false, fmt.Errorf("storage not initialized properly")
 }
 
 // LastModification stub
-func (storage Nil) LastModification(path string) (time.Time, error) {
+func (storage NilStorage) LastModification(path string) (time.Time, error) {
 	return time.Now(), fmt.Errorf("storage not initialized properly")
 }
 
 // TouchFile stub
-func (storage Nil) TouchFile(path string) error {
+func (storage NilStorage) TouchFile(path string) error {
 	return fmt.Errorf("storage not initialized properly")
 }
 
 // DeleteFile stub
-func (storage Nil) DeleteFile(path string) error {
+func (storage NilStorage) DeleteFile(path string) error {
 	return fmt.Errorf("storage not initialized properly")
 }
 
 // ReadFileFully stub
-func (storage Nil) ReadFileFully(path string) ([]byte, error) {
+func (storage NilStorage) ReadFileFully(path string) ([]byte, error) {
 	return nil, fmt.Errorf("storage not initialized properly")
 }
 
 // WriteFileExclusive stub
-func (storage Nil) WriteFileExclusive(path string, data []byte) error {
+func (storage NilStorage) WriteFileExclusive(path string, data []byte) error {
 	return fmt.Errorf("storage not initialized properly")
 }
 
 // WriteFile stub
-func (storage Nil) WriteFile(path string, data []byte) error {
+func (storage NilStorage) WriteFile(path string, data []byte) error {
 	return fmt.Errorf("storage not initialized properly")
 }
 
 // AppendFile stub
-func (storage Nil) AppendFile(path string, data []byte) error {
+func (storage NilStorage) AppendFile(path string, data []byte) error {
 	return fmt.Errorf("storage not initialized properly")
 }
