@@ -20,7 +20,7 @@ func TestExistsPlaintext(t *testing.T) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	var ok bool
 
@@ -54,7 +54,7 @@ func TestReadFileFullyPlaintext(t *testing.T) {
 	basePath := filepath.Base(filename)
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	bigBuff := make([]byte, 75000)
 	rand.Read(bigBuff)
@@ -88,7 +88,7 @@ func TestListDirectoryPlaintext(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	NewSlice := func(start, end, step int) []int {
 		if step <= 0 || end < start {
@@ -143,7 +143,7 @@ func TestCountFilesPlaintext(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 60; i++ {
 		file, err := os.Create(fmt.Sprintf("%s/%010dF", tmpdir, i))
@@ -178,7 +178,7 @@ func BenchmarkCountFilesPlaintext(b *testing.B) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 10000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -206,7 +206,7 @@ func BenchmarkListDirectoryPlaintext(b *testing.B) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 
 	for i := 0; i < 1000; i++ {
 		file, err := os.Create(fmt.Sprintf("%s%010d", tmpdir, i))
@@ -235,7 +235,7 @@ func BenchmarkExistsPlaintext(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
 	b.ResetTimer()
@@ -255,7 +255,7 @@ func BenchmarkWriteFilePlaintext(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
@@ -278,7 +278,7 @@ func BenchmarkAppendFilePlaintext(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 	bigBuff := make([]byte, 1024)
 	rand.Read(bigBuff)
@@ -301,7 +301,7 @@ func BenchmarkReadFileFullyPlaintext(b *testing.B) {
 	filename := file.Name()
 	defer os.Remove(filename)
 
-	storage := NewPlaintextStorage(tmpDir)
+	storage, _ := NewPlaintextStorage(tmpDir)
 	basePath := filepath.Base(filename)
 
 	bigBuff := make([]byte, 1024)
