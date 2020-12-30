@@ -19,6 +19,7 @@ import (
 	"time"
 )
 
+// Storage represents contract
 type Storage interface {
 	Chmod(absPath string, mod os.FileMode) error
 	ListDirectory(string, bool) ([]string, error)
