@@ -53,6 +53,6 @@ services:
   test:
     <<: *go
     entrypoint:
-      - /project/dev/lifecycle/test
+      - /project/.dev/lifecycle/test
 
 # ---------------------------------------------------------------------------- #

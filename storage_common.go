@@ -198,10 +198,10 @@ func touch(absPath string) error {
 	}
 	f, err := os.OpenFile(cleanedPath, os.O_RDONLY|os.O_CREATE|os.O_EXCL, os.ModePerm)
 	if err != nil {
+		f.Close()
 		return err
 	}
-	defer f.Close()
-	return nil
+	return f.Close()
 }
 
 func chmod(absPath string, mod os.FileMode) error {
