@@ -1,9 +1,9 @@
 .git
-vendor
-dev
-reports
+.dev
 .gitignore
 .editorconfig
 .env
 .depignore
-docker-compose.yml
+reports
+vendor
+*_test.*

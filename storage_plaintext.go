@@ -114,7 +114,10 @@ func (storage PlaintextStorage) WriteFileExclusive(path string, data []byte) err
 	if err != nil {
 		return err
 	}
-	defer syscall.Close(fd)
+	defer func() {
+		syscall.Close(fd)
+		syscall.Fsync(fd)
+	}()
 	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
 		return err
 	}
@@ -136,7 +139,10 @@ func (storage PlaintextStorage) WriteFile(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer syscall.Close(fd)
+	defer func() {
+		syscall.Close(fd)
+		syscall.Fsync(fd)
+	}()
 	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
 		return err
 	}
@@ -158,7 +164,10 @@ func (storage PlaintextStorage) AppendFile(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer syscall.Close(fd)
+	defer func() {
+		syscall.Close(fd)
+		syscall.Fsync(fd)
+	}()
 	if err = syscall.Flock(fd, syscall.LOCK_EX); err != nil {
 		return err
 	}
