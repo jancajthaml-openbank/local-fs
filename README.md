@@ -40,8 +40,8 @@ err := storage.TouchFile("foo")
 // ovewrites file /tmp/foo with "abc", creates file if it does not exist
 err := storage.WriteFile("foo", []byte("abc"))
 
-// ovewrites file /tmp/foo with "abc", fails if file does not exist
-err := storage.UpdateFile("foo", []byte("abc"))
+// crates and writes file /tmp/foo with "abc", fails if file exists
+err := storage.WriteFileExclusive("foo", []byte("abc"))
 
 // appends "abc" to end of /tmp/foo file, fails if file does not exist
 err := storage.AppendFile("foo", []byte("abc"))
