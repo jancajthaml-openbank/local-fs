@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2020, Jan Cajthaml <jan.cajthaml@gmail.com>
+// Copyright (c) 2017-2021, Jan Cajthaml <jan.cajthaml@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ type Storage interface {
 	WriteFileExclusive(string, []byte) error
 	WriteFile(string, []byte) error
 	DeleteFile(string) error
-	UpdateFile(string, []byte) error
 	AppendFile(string, []byte) error
 	LastModification(string) (time.Time, error)
 }
