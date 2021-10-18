@@ -6,6 +6,8 @@ Local File System Database
 
 [![godoc for jancajthaml-openbank/local-fs](https://godoc.org/github.com/nathany/looper?status.svg)](https://godoc.org/github.com/jancajthaml-openbank/local-fs)
 
+[![codebeat badge](https://codebeat.co/badges/73fea9e9-0dcf-4628-885e-c47bc99be5df)](https://codebeat.co/projects/github-com-jancajthaml-openbank-local-fs-master)
+
 ## Usage
 
 both plaintext and encrypted storage have same api
