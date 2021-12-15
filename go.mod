@@ -1,3 +1,3 @@
 module github.com/jancajthaml-openbank/local-fs
 
-go 1.15
+go 1.17
