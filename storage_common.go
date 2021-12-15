@@ -25,20 +25,6 @@ import (
 	"unsafe"
 )
 
-func nameFromDirent(dirent *syscall.Dirent) []byte {
-	reg := int(uint64(dirent.Reclen) - uint64(unsafe.Offsetof(syscall.Dirent{}.Name)))
-	var name []byte
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&name))
-	header.Cap = reg
-	header.Len = reg
-	header.Data = uintptr(unsafe.Pointer(&dirent.Name[0]))
-	if index := bytes.IndexByte(name, 0); index >= 0 {
-		header.Cap = index
-		header.Len = index
-	}
-	return name
-}
-
 func listDirectory(absPath string, bufferSize int, ascending bool) (result []string, err error) {
 	var (
 		n  int
@@ -171,11 +157,11 @@ func nodeExists(absPath string) (bool, error) {
 	err = syscall.Stat(cleaned, trusted)
 	if err == nil {
 		return true, nil
-	} else if os.IsNotExist(err) {
-		return false, nil
-	} else {
-		return false, err
 	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 func modTime(absPath string) (time.Time, error) {
