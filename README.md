@@ -34,7 +34,7 @@ count, err := storage.CountFiles("foo")
 ok, err := storage.Exists("foo")
 
 // delete file /tmp/foo
-err := storage.DeleteFile("foo")
+err := storage.Delete("foo")
 
 // creates file /tmp/foo if not exists
 err := storage.TouchFile("foo")

@@ -75,9 +75,9 @@ func (storage PlaintextStorage) TouchFile(path string) error {
 	return touch(storage.root + "/" + path)
 }
 
-// DeleteFile removes file given absolute path if that file does exists
-func (storage PlaintextStorage) DeleteFile(path string) error {
-	return os.Remove(filepath.Clean(storage.root + "/" + path))
+// Delete removes given absolute path if that file does exists
+func (storage EncryptedStorage) Delete(path string) error {
+	return os.RemoveAll(filepath.Clean(storage.root + "/" + path))
 }
 
 // ReadFileFully reads whole file given path

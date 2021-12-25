@@ -29,7 +29,7 @@ type Storage interface {
 	ReadFileFully(string) ([]byte, error)
 	WriteFileExclusive(string, []byte) error
 	WriteFile(string, []byte) error
-	DeleteFile(string) error
+	Delete(string) error
 	AppendFile(string, []byte) error
 	LastModification(string) (time.Time, error)
 }
