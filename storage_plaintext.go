@@ -76,7 +76,7 @@ func (storage PlaintextStorage) TouchFile(path string) error {
 }
 
 // Delete removes given absolute path if that file does exists
-func (storage EncryptedStorage) Delete(path string) error {
+func (storage PlaintextStorage) Delete(path string) error {
 	return os.RemoveAll(filepath.Clean(storage.root + "/" + path))
 }
 
