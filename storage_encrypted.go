@@ -110,9 +110,14 @@ func (storage EncryptedStorage) LastModification(path string) (time.Time, error)
 	return modTime(storage.root + "/" + path)
 }
 
-// TouchFile creates files given absolute path if file does not already exist
+// TouchFile creates file given absolute path if file does not already exist
 func (storage EncryptedStorage) TouchFile(path string) error {
 	return touch(storage.root + "/" + path)
+}
+
+// Mkdir creates directory given absolute path
+func (storage EncryptedStorage) Mkdir(path string) error {
+	return mkdir(storage.root + "/" + path)
 }
 
 // Delete removes given absolute path if that file does exists

@@ -177,6 +177,13 @@ func modTime(absPath string) (time.Time, error) {
 	return time.Unix(int64(trusted.Mtim.Sec), int64(trusted.Mtim.Nsec)), nil
 }
 
+func mkdir(absPath string) error {
+	cleanedPath := filepath.Clean(absPath)
+	if err := os.MkdirAll(cleanedPath, os.ModePerm); err != nil {
+		return err
+	}
+}
+
 func touch(absPath string) error {
 	cleanedPath := filepath.Clean(absPath)
 	if err := os.MkdirAll(filepath.Dir(cleanedPath), os.ModePerm); err != nil {
