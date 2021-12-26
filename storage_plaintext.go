@@ -75,6 +75,11 @@ func (storage PlaintextStorage) TouchFile(path string) error {
 	return touch(storage.root + "/" + path)
 }
 
+// Mkdir creates directory given absolute path
+func (storage PlaintextStorage) Mkdir(path string) error {
+	return mkdir(storage.root + "/" + path)
+}
+
 // Delete removes given absolute path if that file does exists
 func (storage PlaintextStorage) Delete(path string) error {
 	return os.RemoveAll(filepath.Clean(storage.root + "/" + path))
