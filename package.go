@@ -26,6 +26,7 @@ type Storage interface {
 	CountFiles(string) (int, error)
 	Exists(string) (bool, error)
 	TouchFile(string) error
+	Mkdir( string) error
 	ReadFileFully(string) ([]byte, error)
 	WriteFileExclusive(string, []byte) error
 	WriteFile(string, []byte) error
